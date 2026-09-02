@@ -1,0 +1,35 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Segredos — NUNCA versionar
+.env
+.env.local
+.env.bak
+
+# Estado local do Supabase CLI (metadados de vínculo, não é código)
+supabase/.temp/
+
+# Estado interno de sessão do Claude Code, não é código do projeto
+.claude/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

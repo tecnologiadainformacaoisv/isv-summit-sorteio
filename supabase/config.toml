@@ -1,0 +1,6 @@
+project_id = "isv-summit-sorteio"
+
+[functions.importar-sympla]
+# Exige JWT válido (usuário logado em /admin) antes mesmo de chegar no código
+# da função — camada extra além da checagem manual que a função já faz.
+verify_jwt = true
