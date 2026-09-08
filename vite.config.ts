@@ -1,5 +1,11 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
+const pkg = JSON.parse(
+  readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'),
+)
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -8,4 +14,9 @@ export default defineConfig({
   // (usuario.github.io/isv-summit-sorteio/) quanto num domínio próprio depois,
   // sem precisar trocar essa config quando isso acontecer.
   base: './',
+  define: {
+    // Versão do package.json embutida no bundle — exibida no cabeçalho do app
+    // para confirmar visualmente qual build está publicada no GitHub Pages.
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
 })

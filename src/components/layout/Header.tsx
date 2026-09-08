@@ -16,7 +16,15 @@ export function Header({ titulo = 'ISV Summit 2026', subtitulo = 'Sorteio de pr�
   return (
     <header className="bg-summit-gradient flex flex-wrap items-center justify-between gap-4 px-8 py-5 text-white shadow-lg">
       <div>
-        <p className="text-2xl font-extrabold tracking-tight">{titulo}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-2xl font-extrabold tracking-tight">{titulo}</p>
+          <span
+            className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-bold tracking-wide text-white/80"
+            title="Versão publicada (confira se bate com a mais recente após um deploy)"
+          >
+            v{__APP_VERSION__}
+          </span>
+        </div>
         <p className="text-sm opacity-80">{subtitulo}</p>
       </div>
       <div className="flex items-center gap-4">
