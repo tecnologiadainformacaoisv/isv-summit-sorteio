@@ -8,8 +8,8 @@
 
 App de sorteio de prêmios para o evento presencial ISV Summit 2026 (25/09, Fortaleza-CE). Operado
 por um membro da equipe de TI numa tela projetada (telão) durante o evento: participantes vêm do
-cadastro da Sympla, os prêmios são sorteados um a um com um efeito de "slot" de nomes, confete e som
-na revelação. Quem já ganhou não é sorteado de novo.
+cadastro da Sympla, os prêmios são sorteados um a um com uma roleta de nomes (estilo Wheel of Names),
+confete e som na revelação. Quem já ganhou não é sorteado de novo.
 
 **Objetivo:** substituir ferramentas genéricas de sorteio (Wheel of Names etc.) por uma aplicação com
 a identidade visual própria do Summit, integrada à lista real de inscritos do evento.
@@ -43,8 +43,11 @@ Este projeto faz parte da pasta `Desenvolvimento/`, que reúne os sistemas do
   lista de participantes pode ter homônimos reais (duas pessoas diferentes, mesmo nome) — comparar
   por string de nome excluiria a pessoa errada. Ver `src/lib/sorteio.ts`.
 - **O RNG do sorteio roda no clique do operador e persiste no banco (`sorteios`) antes de qualquer
-  animação.** O `SlotReel` é puramente visual — recebe o vencedor já definido e anima até parar nele.
-  Nunca decidir o vencedor dentro do componente de animação.
+  animação.** O `WheelSpin` (roleta) é puramente visual — recebe o vencedor já definido e gira até
+  parar nele. Nunca decidir o vencedor dentro do componente de animação.
+- **Modelo de sorteio é roleta (`WheelSpin.tsx`), não mais o slot/scroll antigo.** Trocado a pedido do
+  usuário para replicar a mecânica do Wheel of Names. Com pools grandes (50+ participantes) as fatias
+  ficam finas e o texto pequeno — trade-off conhecido e aceito.
 - **O vencedor é exibido com nome + setor/unidade**, para desambiguar homônimos na tela.
 - **Nenhum segredo (token da Sympla, `SUPABASE_SERVICE_ROLE_KEY`) pode ir para o bundle do
   frontend/Vite.** Esses valores só existem como Supabase secrets da Edge Function
@@ -71,7 +74,8 @@ Este projeto faz parte da pasta `Desenvolvimento/`, que reúne os sistemas do
 - Commits no padrão **Conventional Commits** (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`).
 - Segurança de dados via **RLS do Postgres** (ver `db/02_rls.sql`) — leitura pública restrita a colunas
   não sensíveis (`participantes_publico`), escrita só para usuários autenticados.
-- Rotas: `/` = tela pública do telão (sem login); `/admin/*` = gestão (login via Supabase Auth).
+- Rotas: `/` = tela do telão; `/admin/*` = gestão. **Ambas exigem login** (`RequireAuth`) — gravar um
+  sorteio é escrita no banco, e RLS só permite escrita autenticada, então o telão não pode ficar aberto.
 
 ---
 

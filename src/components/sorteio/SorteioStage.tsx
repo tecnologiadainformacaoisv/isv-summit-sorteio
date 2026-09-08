@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Premio, ParticipantePublico } from '../../types/database'
 import { realizarSorteio } from '../../lib/sorteio'
-import { SlotReel } from './SlotReel'
+import { WheelSpin } from './WheelSpin'
 import { ConfeteOverlay } from './ConfeteOverlay'
 import { VencedorReveal } from './VencedorReveal'
 import { Button } from '../ui/Button'
@@ -16,8 +16,8 @@ type Fase = 'aguardando' | 'sorteando' | 'revelado'
 
 /**
  * Orquestra o sorteio de um prêmio: dispara o RNG (persistido no banco antes
- * de animar), controla o SlotReel, e libera confete + revelação quando o
- * reel termina de desacelerar.
+ * de animar), controla a roleta (WheelSpin), e libera confete + revelação
+ * quando ela termina de desacelerar.
  */
 export function SorteioStage({ premio, candidatos, onSorteioConcluido }: SorteioStageProps) {
   const [fase, setFase] = useState<Fase>('aguardando')
@@ -40,7 +40,7 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
     }
   }
 
-  function handleReelFinalizado() {
+  function handleRoletaFinalizada() {
     setFase('revelado')
     setConfeteTrigger((v) => v + 1)
     onSorteioConcluido?.()
@@ -60,7 +60,7 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
       )}
 
       {fase !== 'aguardando' && (
-        <SlotReel candidatos={candidatos} vencedor={vencedor} onFinalizar={handleReelFinalizado} />
+        <WheelSpin candidatos={candidatos} vencedor={vencedor} onFinalizar={handleRoletaFinalizada} />
       )}
 
       <VencedorReveal vencedor={vencedor} visivel={fase === 'revelado'} />
