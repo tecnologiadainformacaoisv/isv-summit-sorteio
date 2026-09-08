@@ -5,30 +5,45 @@
 // Chamada a partir de /admin/importacao (usuário já autenticado) via
 // `supabase.functions.invoke('importar-sympla')`.
 //
-// PENDÊNCIA: SYMPLA_API_TOKEN e SYMPLA_EVENT_ID ainda não foram gerados pelo
-// ISV. Até lá, esta função responde 500 com uma mensagem clara em vez de
-// falhar silenciosamente — use db/03_seed_dev.sql para testar o resto do
-// fluxo enquanto isso.
+// Formato real da API (v3) confirmado em 2026-09-02 contra o evento ISV
+// Summit 2026 (event_id 3538071): ver comentários inline.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
+interface SymplaCustomFormItem {
+  id: number
+  name: string
+  value: string
+}
+
 interface SymplaParticipant {
-  id: string
+  id: number
   first_name: string
   last_name: string
   email: string
-  // Campo customizado do formulário de inscrição do evento — o nome exato da
-  // chave depende de como o formulário da Sympla foi configurado; ajustar
-  // aqui assim que tivermos acesso real à API para conferir o payload.
-  custom_fields?: Array<{ name: string; value: string }>
+  custom_form: SymplaCustomFormItem[]
+}
+
+interface SymplaPagination {
+  has_next: boolean
+  has_prev: boolean
+  quantity: number
+  offset: number
+  page: number
+  page_size: number
+  total_page: number
 }
 
 interface SymplaParticipantsResponse {
   data: SymplaParticipant[]
-  pagination?: { next?: string | null }
+  pagination: SymplaPagination
 }
 
-const SETOR_CAMPO_CUSTOMIZADO = 'Setor' // ajustar conforme o formulário real da Sympla
+// Nome do campo customizado de "setor" no formulário de inscrição do evento.
+// Nenhum participante importado até agora tem custom_form preenchido (o
+// formulário ainda não tem esse campo configurado) — ajustar aqui assim que
+// o campo existir e checar o `name` real que a Sympla retorna.
+const SETOR_CAMPO_CUSTOMIZADO = 'Setor'
 
 Deno.serve(async (req) => {
   try {
@@ -44,10 +59,7 @@ Deno.serve(async (req) => {
 
     if (!symplaToken || !eventId) {
       return jsonResponse(
-        {
-          error:
-            'SYMPLA_API_TOKEN / SYMPLA_EVENT_ID não configurados. Pendência: gerar o token na conta Sympla do ISV e rodar `supabase secrets set`.',
-        },
+        { error: 'SYMPLA_API_TOKEN / SYMPLA_EVENT_ID não configurados nos secrets da função.' },
         500,
       )
     }
@@ -75,17 +87,18 @@ Deno.serve(async (req) => {
     for (const p of participantes) {
       const nome = `${p.first_name} ${p.last_name}`.trim()
       const setor_texto =
-        p.custom_fields?.find((c) => c.name === SETOR_CAMPO_CUSTOMIZADO)?.value ?? null
+        p.custom_form.find((c) => c.name === SETOR_CAMPO_CUSTOMIZADO)?.value ?? null
+      const symplaId = String(p.id)
 
       const { data: existente } = await admin
         .from('participantes')
         .select('id')
-        .eq('sympla_participant_id', p.id)
+        .eq('sympla_participant_id', symplaId)
         .maybeSingle()
 
       const { error } = await admin.from('participantes').upsert(
         {
-          sympla_participant_id: p.id,
+          sympla_participant_id: symplaId,
           nome,
           email: p.email,
           setor_texto,
@@ -107,18 +120,19 @@ Deno.serve(async (req) => {
 
 async function buscarTodosParticipantes(eventId: string, token: string): Promise<SymplaParticipant[]> {
   const participantes: SymplaParticipant[] = []
-  // Endpoint documentado pela Sympla para listar participantes de um evento.
-  // Confirmar paginação exata (cursor vs. page) assim que tivermos o token real.
-  let url: string | null = `https://api.sympla.com.br/public/v3/events/${eventId}/participants`
+  let page = 1
 
-  while (url) {
-    const resposta: Response = await fetch(url, { headers: { s_token: token } })
+  while (true) {
+    const url = `https://api.sympla.com.br/public/v3/events/${eventId}/participants?page=${page}`
+    const resposta = await fetch(url, { headers: { s_token: token } })
     if (!resposta.ok) {
       throw new Error(`Falha ao consultar a API da Sympla (status ${resposta.status}).`)
     }
     const corpo: SymplaParticipantsResponse = await resposta.json()
     participantes.push(...corpo.data)
-    url = corpo.pagination?.next ?? null
+
+    if (!corpo.pagination?.has_next) break
+    page += 1
   }
 
   return participantes
