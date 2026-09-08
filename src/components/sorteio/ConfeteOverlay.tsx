@@ -7,8 +7,10 @@ interface ConfeteOverlayProps {
 }
 
 // Rajadas espaçadas (não uma a cada frame) — muito mais leve, mesmo efeito visual.
-const RAJADAS = 4
-const INTERVALO_MS = 220
+// 6 rajadas a cada 500ms (2,5s de disparos) + ~2,2s de queda da última rajada
+// (ticks: 130 a 60fps) = efeito visível por ~4 a 5s no total.
+const RAJADAS = 6
+const INTERVALO_MS = 500
 const PARTICULAS_POR_RAJADA = 35
 
 /**
