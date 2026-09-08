@@ -36,3 +36,6 @@ supabase/.temp/
 
 .vercel
 .env*
+
+# Relatórios locais (não versionados, ficam só na máquina)
+docs/
