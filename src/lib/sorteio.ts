@@ -5,6 +5,13 @@ import type { ParticipantePublico } from '../types/database'
  * Regra de exclusão do sorteio: um participante SEMPRE sai do pool pelo seu `id`
  * (UUID), nunca por comparação de nome — a lista pode ter homônimos reais
  * (duas pessoas diferentes com o mesmo nome cadastrado na Sympla).
+ *
+ * Usada só para EXIBIÇÃO (contador de elegíveis, fatias da roleta) — não é
+ * mais a fonte de verdade do sorteio em si. O RNG real acontece dentro da
+ * função `sortear_premio` no banco (ver db/04_funcoes.sql), atomicamente,
+ * pra não abrir uma condição de corrida entre "ler quem está elegível" e
+ * "gravar o resultado" (dois cliques rápidos não podem sortear a mesma
+ * pessoa duas vezes).
  */
 export async function buscarParticipantesElegiveis(): Promise<ParticipantePublico[]> {
   const { data: sorteados, error: erroSorteios } = await supabase
@@ -29,39 +36,37 @@ export async function buscarParticipantesElegiveis(): Promise<ParticipantePublic
   return data ?? []
 }
 
-/** Escolhe um vencedor aleatório dentre os elegíveis usando o RNG do navegador. */
-export function sortearVencedor(elegiveis: ParticipantePublico[]): ParticipantePublico {
-  if (elegiveis.length === 0) {
-    throw new Error('Não há participantes elegíveis restantes para sorteio.')
-  }
-  const indice = Math.floor(Math.random() * elegiveis.length)
-  return elegiveis[indice]
+interface ResultadoSorteioRpc {
+  participante_id: string
+  participante_nome: string
+  participante_setor: string | null
 }
 
 /**
- * Grava o resultado do sorteio no banco ANTES de qualquer animação.
- * A UI (SlotReel) é só visual: recebe o vencedor já definido e anima até parar nele.
- * `sorteios.premio_id` é UNIQUE — um clique duplo/retry falha aqui em vez de
- * gravar dois vencedores para o mesmo prêmio.
+ * Sorteia e grava o resultado atomicamente via RPC (`sortear_premio`) —
+ * leitura de elegíveis + exclusão + insert acontecem numa única transação
+ * no banco, travando `sorteios` durante a operação. Isso é o que garante
+ * que a regra "quem já ganhou não é sorteado de novo" vale mesmo sob
+ * cliques duplos ou dois sorteios disparados quase ao mesmo tempo.
  */
-export async function registrarSorteio(premioId: string, participanteId: string, operador?: string) {
-  const { data, error } = await supabase
-    .from('sorteios')
-    .insert({ premio_id: premioId, participante_id: participanteId, operador: operador ?? null })
-    .select()
-    .single()
+export async function realizarSorteio(premioId: string, operador?: string): Promise<ParticipantePublico> {
+  const { data, error } = await supabase.rpc('sortear_premio', {
+    p_premio_id: premioId,
+    p_operador: operador ?? null,
+  })
 
   if (error) throw error
 
-  await supabase.from('premios').update({ status: 'sorteado' }).eq('id', premioId)
+  const linha = (data as ResultadoSorteioRpc[] | null)?.[0]
+  if (!linha) throw new Error('Sorteio não retornou um vencedor.')
 
-  return data
-}
-
-/** Fluxo completo: busca elegíveis, sorteia e persiste — usado pelo clique "Sortear" do operador. */
-export async function realizarSorteio(premioId: string, operador?: string) {
-  const elegiveis = await buscarParticipantesElegiveis()
-  const vencedor = sortearVencedor(elegiveis)
-  await registrarSorteio(premioId, vencedor.id, operador)
-  return vencedor
+  return {
+    id: linha.participante_id,
+    nome: linha.participante_nome,
+    setor_texto: linha.participante_setor,
+    setor_id: null,
+    tipo: 'convidado',
+    elegivel: true,
+    criado_em: new Date().toISOString(),
+  }
 }

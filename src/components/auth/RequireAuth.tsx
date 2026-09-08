@@ -10,10 +10,22 @@ import { useAuth } from '../../hooks/useAuth'
  * admin. Guarda o destino original para voltar pra lá depois do login.
  */
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { autenticado, carregando } = useAuth()
+  const { autenticado, carregando, erro } = useAuth()
   const location = useLocation()
 
   if (carregando) return null
+
+  if (erro) {
+    return (
+      <div className="bg-summit-gradient flex min-h-screen items-center justify-center px-4 text-center text-white">
+        <div>
+          <p className="mb-1 text-lg font-bold">Não foi possível verificar o login.</p>
+          <p className="text-sm text-white/70">{erro} — recarregue a página pra tentar de novo.</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!autenticado) {
     return <Navigate to="/admin/login" state={{ from: location }} replace />
   }

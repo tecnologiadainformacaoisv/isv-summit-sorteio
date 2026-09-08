@@ -6,7 +6,7 @@ import { usePremios } from '../hooks/usePremios'
 import { useParticipantesElegiveis } from '../hooks/useParticipantesElegiveis'
 import type { Premio } from '../types/database'
 
-/** Tela pública do telão — operada por um membro da equipe, sem exigir login. */
+/** Tela do telão, operada por um membro da equipe logado (ver RequireAuth em App.tsx). */
 export function SorteioPage() {
   const { premios, carregando: carregandoPremios, recarregar: recarregarPremios } = usePremios()
   const { elegiveis, recarregar: recarregarElegiveis } = useParticipantesElegiveis()
@@ -27,7 +27,10 @@ export function SorteioPage() {
           >
             ← Voltar para a lista de prêmios
           </button>
+          {/* key={premio.id}: força remontagem ao trocar de prêmio, garantindo que o
+              "já girei" interno do WheelSpin reseta para o próximo sorteio. */}
           <SorteioStage
+            key={premioAtual.id}
             premio={premioAtual}
             candidatos={elegiveis}
             onSorteioConcluido={handleSorteioConcluido}

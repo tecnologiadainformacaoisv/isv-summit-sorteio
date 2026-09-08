@@ -16,6 +16,10 @@ interface WheelSpinProps {
 // mesmo com dezenas de fatias.
 const CORES = ['#00ECAA', '#147556', '#0E696C', '#24A66A', '#018D50', '#015158']
 
+// Única fonte da verdade pra duração do giro — usada tanto na transição do
+// framer-motion quanto no timeout que libera onFinalizar, pra nunca dessincronizar.
+const DURACAO_GIRO_MS = 4500
+
 /**
  * Roleta de nomes (estilo Wheel of Names): fatias desenhadas em canvas,
  * giro com desaceleração parando exatamente no vencedor já sorteado (RNG
@@ -99,11 +103,12 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
     controls.set({ rotate: 0 })
     controls.start({
       rotate: destino,
-      transition: { duration: 4.5, ease: [0.12, 0.8, 0.15, 1] },
+      transition: { duration: DURACAO_GIRO_MS / 1000, ease: [0.12, 0.8, 0.15, 1] },
     })
-    // Sincronizado com a duração acima (não com onComplete) para não depender
-    // de callback do framer-motion disparar exatamente junto do fim visual.
-    const timeout = setTimeout(() => onFinalizar?.(), 4500)
+    // Usa um timeout (não onComplete do framer-motion) pra não depender do
+    // callback disparar exatamente junto do fim visual — mas com a MESMA
+    // constante da duração da transição acima, nunca hardcoded duas vezes.
+    const timeout = setTimeout(() => onFinalizar?.(), DURACAO_GIRO_MS)
     return () => clearTimeout(timeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vencedor])

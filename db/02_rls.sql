@@ -35,8 +35,13 @@ create policy "escrita autenticada categorias" on categorias_premio for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "escrita autenticada premios" on premios for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "escrita autenticada sorteios" on sorteios for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+-- `sorteios` NÃO tem policy de escrita para authenticated (de propósito): a
+-- única forma de gravar um sorteio é pela função sortear_premio() (ver
+-- db/04_funcoes.sql), que é SECURITY DEFINER e faz a leitura+exclusão+insert
+-- de forma atômica. Se a API tivesse insert/update/delete diretos aqui,
+-- (a) reabriria a condição de corrida que a função resolve, e (b) qualquer
+-- usuário autenticado poderia DELETE um sorteio já feito e devolver o
+-- "ganhador" ao pool de elegíveis, violando a regra de negócio.
 
 -- Leitura pública da view (participantes_publico não tem RLS própria, mas
 -- precisa que o usuário anon tenha permissão de SELECT no objeto).
