@@ -1,5 +1,6 @@
-import { Navigate, NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { RequireAuth } from '../../components/auth/RequireAuth'
 
 const links = [
   { to: '/admin', label: 'Início', end: true },
@@ -7,14 +8,19 @@ const links = [
   { to: '/admin/premios', label: 'Prêmios' },
   { to: '/admin/vencedores', label: 'Vencedores' },
   { to: '/admin/importacao', label: 'Importação Sympla' },
+  { to: '/', label: '↗ Ir para o telão', end: true },
 ]
 
-/** Guarda de sessão: redireciona para /admin/login se não autenticado. */
 export function AdminLayout() {
-  const { autenticado, carregando, sair } = useAuth()
+  return (
+    <RequireAuth>
+      <AdminLayoutConteudo />
+    </RequireAuth>
+  )
+}
 
-  if (carregando) return null
-  if (!autenticado) return <Navigate to="/admin/login" replace />
+function AdminLayoutConteudo() {
+  const { sair } = useAuth()
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">

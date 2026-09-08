@@ -1,16 +1,22 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../../components/ui/Button'
 
 export function LoginPage() {
   const { entrar } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+
+  // Volta pra tela que o operador estava tentando abrir (ex: "/" pra sortear)
+  // — RequireAuth guarda esse destino em location.state ao redirecionar aqui.
+  const destino = (location.state as { from?: Location })?.from
+  const destinoPath = destino ? `${destino.pathname}${destino.search ?? ''}` : '/admin'
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -19,7 +25,7 @@ export function LoginPage() {
     const { error } = await entrar(email, senha)
     setEnviando(false)
     if (error) setErro('E-mail ou senha inválidos.')
-    else navigate('/admin')
+    else navigate(destinoPath, { replace: true })
   }
 
   return (

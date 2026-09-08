@@ -7,11 +7,21 @@ import { ParticipantesPage } from './routes/admin/ParticipantesPage'
 import { PremiosPage } from './routes/admin/PremiosPage'
 import { VencedoresPage } from './routes/admin/VencedoresPage'
 import { ImportacaoSymplaPage } from './routes/admin/ImportacaoSymplaPage'
+import { RequireAuth } from './components/auth/RequireAuth'
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<SorteioPage />} />
+      {/* Gravar um sorteio exige usuário autenticado (RLS) — quem opera o
+          telão precisa estar logado, mesmo essa não sendo uma tela "de admin". */}
+      <Route
+        path="/"
+        element={
+          <RequireAuth>
+            <SorteioPage />
+          </RequireAuth>
+        }
+      />
 
       <Route path="/admin/login" element={<LoginPage />} />
       <Route path="/admin" element={<AdminLayout />}>
