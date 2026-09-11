@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { PageShell } from '../components/layout/PageShell'
 import { PremioGrid } from '../components/premios/PremioGrid'
 import { SorteioStage } from '../components/sorteio/SorteioStage'
+import { Button } from '../components/ui/Button'
 import { usePremios } from '../hooks/usePremios'
 import { useParticipantesElegiveis } from '../hooks/useParticipantesElegiveis'
 import type { Premio } from '../types/database'
@@ -20,13 +21,9 @@ export function SorteioPage() {
     <PageShell titulo="ISV Summit 2026" subtitulo="Sorteio de prêmios">
       {premioAtual ? (
         <div>
-          <button
-            type="button"
-            onClick={() => setPremioAtual(null)}
-            className="mb-6 text-sm font-semibold text-white/70 hover:text-white"
-          >
+          <Button variante="outline" onClick={() => setPremioAtual(null)} className="mb-6">
             ← Voltar para a lista de prêmios
-          </button>
+          </Button>
           {/* key={premio.id}: força remontagem ao trocar de prêmio, garantindo que o
               "já girei" interno do WheelSpin reseta para o próximo sorteio. */}
           <SorteioStage
