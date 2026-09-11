@@ -35,6 +35,12 @@ export function Header({ titulo = 'ISV Summit 2026', subtitulo = 'Sorteio de pr�
         <p className="text-sm opacity-80">{subtitulo}</p>
       </div>
       <div className="flex items-center gap-4">
+        <Link
+          to="/admin"
+          className="rounded-summit-sm border-2 border-white/50 px-3 py-1.5 text-sm font-bold hover:bg-white/10"
+        >
+          Painel admin →
+        </Link>
         <img src={logoInstitucional} alt="Instituto São Vicente" className="h-10 w-auto rounded-summit-sm" />
         <img src={logoHub} alt="ISV Hub" className="h-10 w-auto rounded-summit-sm" />
       </div>
