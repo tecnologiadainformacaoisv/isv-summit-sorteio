@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import logoInstitucional from '../../assets/logo-isv-institucional.png'
 import logoHub from '../../assets/logo-isv-hub.png'
 
@@ -17,7 +18,13 @@ export function Header({ titulo = 'ISV Summit 2026', subtitulo = 'Sorteio de pr�
     <header className="bg-summit-gradient flex flex-wrap items-center justify-between gap-4 px-8 py-5 text-white shadow-lg">
       <div>
         <div className="flex items-center gap-2">
-          <p className="text-2xl font-extrabold tracking-tight">{titulo}</p>
+          <Link
+            to="/"
+            className="text-2xl font-extrabold tracking-tight hover:underline"
+            title="Voltar para a tela inicial"
+          >
+            {titulo}
+          </Link>
           <span
             className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-bold tracking-wide text-white/80"
             title="Versão publicada (confira se bate com a mais recente após um deploy)"
