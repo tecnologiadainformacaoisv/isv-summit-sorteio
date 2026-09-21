@@ -2,6 +2,17 @@ import { supabase } from './supabase'
 import type { ParticipantePublico } from '../types/database'
 
 /**
+ * O erro que o supabase-js devolve (`PostgrestError`) é um objeto plano, NÃO
+ * uma instância de `Error` — `throw error` direto faz qualquer `catch (e) {
+ * e instanceof Error ? ... : 'mensagem genérica' }` (padrão usado na UI toda)
+ * cair sempre no fallback genérico, escondendo a mensagem real. Sempre
+ * relançar como Error de verdade.
+ */
+function lancar(erro: { message: string } | null): asserts erro is null {
+  if (erro) throw new Error(erro.message)
+}
+
+/**
  * Regra de exclusão do sorteio: um participante SEMPRE sai do pool pelo seu `id`
  * (UUID), nunca por comparação de nome — a lista pode ter homônimos reais
  * (duas pessoas diferentes com o mesmo nome cadastrado na Sympla).
@@ -18,7 +29,7 @@ export async function buscarParticipantesElegiveis(): Promise<ParticipantePublic
     .from('sorteios')
     .select('participante_id')
 
-  if (erroSorteios) throw erroSorteios
+  lancar(erroSorteios)
 
   const idsJaSorteados = (sorteados ?? []).map((s) => s.participante_id)
 
@@ -32,7 +43,7 @@ export async function buscarParticipantesElegiveis(): Promise<ParticipantePublic
   }
 
   const { data, error } = await query
-  if (error) throw error
+  lancar(error)
   return data ?? []
 }
 
@@ -55,7 +66,7 @@ export async function realizarSorteio(premioId: string, operador?: string): Prom
     p_operador: operador ?? null,
   })
 
-  if (error) throw error
+  lancar(error)
 
   const linha = (data as ResultadoSorteioRpc[] | null)?.[0]
   if (!linha) throw new Error('Sorteio não retornou um vencedor.')
@@ -79,5 +90,5 @@ export async function realizarSorteio(premioId: string, operador?: string): Prom
  */
 export async function resetarSorteios(): Promise<void> {
   const { error } = await supabase.rpc('resetar_sorteios')
-  if (error) throw error
+  lancar(error)
 }
