@@ -58,8 +58,12 @@ security definer
 set search_path = public
 as $$
 begin
-  delete from sorteios;
-  update premios set status = 'aberto';
+  -- O Postgres do Supabase tem uma proteção (extensão de "safe update") que
+  -- bloqueia DELETE/UPDATE sem WHERE, pra evitar apagar/alterar tabela
+  -- inteira sem querer. "where true" satisfaz a exigência mantendo a
+  -- intenção real (afetar todas as linhas).
+  delete from sorteios where true;
+  update premios set status = 'aberto' where true;
 end;
 $$;
 
