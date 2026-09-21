@@ -55,6 +55,28 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+// Cadastros da Sympla vêm em caixas inconsistentes (TUDO MAIÚSCULO, tudo
+// minúsculo, etc). Padroniza em Title Case, respeitando conectivas comuns em
+// português ("de", "da", "do"...). MESMA lógica de src/lib/format.ts — Deno
+// não importa daquele módulo (roda em runtime separado do frontend Vite),
+// então qualquer ajuste aqui precisa refletir lá também.
+const CONECTIVAS = new Set(['de', 'da', 'do', 'das', 'dos', 'e'])
+// "ISV" identifica gente do escritório do Instituto (ex: "Gabriela ISV"),
+// precisa ficar sempre em caixa alta, nunca virar "Isv".
+const SIGLAS = new Set(['isv'])
+function formatarNomeProprio(nome: string): string {
+  return nome
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((palavra, indice) => {
+      if (SIGLAS.has(palavra)) return palavra.toUpperCase()
+      if (indice > 0 && CONECTIVAS.has(palavra)) return palavra
+      return palavra.charAt(0).toUpperCase() + palavra.slice(1)
+    })
+    .join(' ')
+}
+
 Deno.serve(async (req) => {
   // Navegador sempre manda OPTIONS antes do POST real — responde só com os
   // headers de CORS, sem passar pela lógica de autenticação/importação.
@@ -101,7 +123,7 @@ Deno.serve(async (req) => {
     let atualizados = 0
 
     for (const p of participantes) {
-      const nome = `${p.first_name} ${p.last_name}`.trim()
+      const nome = formatarNomeProprio(`${p.first_name} ${p.last_name}`)
       const setor_texto =
         p.custom_form.find((c) => c.name === SETOR_CAMPO_CUSTOMIZADO)?.value ?? null
       const symplaId = String(p.id)
