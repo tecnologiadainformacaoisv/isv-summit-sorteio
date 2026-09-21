@@ -45,7 +45,23 @@ interface SymplaParticipantsResponse {
 // o campo existir e checar o `name` real que a Sympla retorna.
 const SETOR_CAMPO_CUSTOMIZADO = 'Setor'
 
+// Sem estes headers, o navegador bloqueia a chamada ANTES de tentar (preflight
+// OPTIONS) — o site (github.io) e a função (supabase.co) são domínios
+// diferentes. Falha silenciosa e genérica ("Failed to send a request") do
+// lado do supabase-js quando isso falta.
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 Deno.serve(async (req) => {
+  // Navegador sempre manda OPTIONS antes do POST real — responde só com os
+  // headers de CORS, sem passar pela lógica de autenticação/importação.
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
@@ -141,6 +157,6 @@ async function buscarTodosParticipantes(eventId: string, token: string): Promise
 function jsonResponse(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...corsHeaders },
   })
 }

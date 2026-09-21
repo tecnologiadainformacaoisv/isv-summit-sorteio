@@ -46,3 +46,22 @@ $$;
 
 grant execute on function sortear_premio(uuid, text) to authenticated;
 revoke execute on function sortear_premio(uuid, text) from anon;
+
+-- Reset de testes: apaga TODOS os sorteios já feitos e reabre todos os
+-- prêmios ("aberto" de novo). Participantes NÃO são apagados. Usado durante
+-- os testes/ensaios do app antes do evento — botão discreto na tela do
+-- telão, com confirmação antes de executar (ver src/lib/sorteio.ts).
+create or replace function resetar_sorteios()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from sorteios;
+  update premios set status = 'aberto';
+end;
+$$;
+
+grant execute on function resetar_sorteios() to authenticated;
+revoke execute on function resetar_sorteios() from anon;

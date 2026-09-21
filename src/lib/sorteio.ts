@@ -70,3 +70,14 @@ export async function realizarSorteio(premioId: string, operador?: string): Prom
     criado_em: new Date().toISOString(),
   }
 }
+
+/**
+ * Apaga TODOS os sorteios feitos e reabre todos os prêmios — usado durante
+ * testes/ensaios, para reiniciar o pool sem precisar mexer no banco na mão.
+ * Participantes não são afetados. Irreversível: quem chama a UI deve
+ * confirmar com o operador antes (ver botão de reset em SorteioPage.tsx).
+ */
+export async function resetarSorteios(): Promise<void> {
+  const { error } = await supabase.rpc('resetar_sorteios')
+  if (error) throw error
+}

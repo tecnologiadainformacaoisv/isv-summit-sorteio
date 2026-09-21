@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { PageShell } from '../components/layout/PageShell'
 import { PremioGrid } from '../components/premios/PremioGrid'
 import { SorteioStage } from '../components/sorteio/SorteioStage'
+import { ResetarSorteiosButton } from '../components/sorteio/ResetarSorteiosButton'
 import { Button } from '../components/ui/Button'
 import { usePremios } from '../hooks/usePremios'
 import { useParticipantesElegiveis } from '../hooks/useParticipantesElegiveis'
@@ -41,6 +42,13 @@ export function SorteioPage() {
           <PremioGrid premios={premios} onSelecionar={setPremioAtual} />
         </>
       )}
+
+      <ResetarSorteiosButton
+        onResetado={async () => {
+          setPremioAtual(null) // evita ficar preso na tela de um prêmio com status desatualizado
+          await handleSorteioConcluido()
+        }}
+      />
     </PageShell>
   )
 }
