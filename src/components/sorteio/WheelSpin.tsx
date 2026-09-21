@@ -126,12 +126,20 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
           borderTop: '22px solid #ffffff',
         }}
       />
-      <motion.canvas
-        ref={canvasRef}
-        animate={controls}
-        style={{ width: tamanho, height: tamanho, borderRadius: '50%' }}
-        className="shadow-summit"
-      />
+      {/*
+        overflow: hidden aqui é essencial, não só estético: girando um
+        quadrado (o <canvas>), a caixa visual dele em 45°/135° fica maior
+        que o lado original (diagonal > lado) — sem cortar isso, o documento
+        ganha e perde altura de rolagem a cada 1/4 de volta, fazendo a
+        barra de scroll "pular" repetidamente durante o giro inteiro.
+      */}
+      <div className="h-full w-full overflow-hidden rounded-full shadow-summit">
+        <motion.canvas
+          ref={canvasRef}
+          animate={controls}
+          style={{ width: tamanho, height: tamanho }}
+        />
+      </div>
       <div
         className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-summit-ciano bg-white"
         aria-hidden
