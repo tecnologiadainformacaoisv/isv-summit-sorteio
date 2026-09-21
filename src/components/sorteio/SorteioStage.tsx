@@ -17,12 +17,13 @@ type Fase = 'aguardando' | 'sorteando' | 'revelado'
 /**
  * Orquestra o sorteio de um prêmio: dispara o RNG (persistido no banco antes
  * de animar), controla a roleta (WheelSpin), e libera confete + revelação
- * quando ela termina de desacelerar.
+ * em destaque (overlay de tela cheia) quando ela termina de desacelerar.
  */
 export function SorteioStage({ premio, candidatos, onSorteioConcluido }: SorteioStageProps) {
   const [fase, setFase] = useState<Fase>('aguardando')
   const [vencedor, setVencedor] = useState<ParticipantePublico | null>(null)
   const [confeteTrigger, setConfeteTrigger] = useState(0)
+  const [mostrarRevelacao, setMostrarRevelacao] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [sorteando, setSorteando] = useState(false)
 
@@ -42,6 +43,7 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
 
   function handleRoletaFinalizada() {
     setFase('revelado')
+    setMostrarRevelacao(true)
     setConfeteTrigger((v) => v + 1)
     onSorteioConcluido?.()
   }
@@ -63,8 +65,27 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
         <WheelSpin candidatos={candidatos} vencedor={vencedor} onFinalizar={handleRoletaFinalizada} />
       )}
 
-      <VencedorReveal vencedor={vencedor} visivel={fase === 'revelado'} />
+      {/* Overlay em destaque, sobre a roleta — some ao clicar "Continuar", mas o
+          resultado continua registrado (fase permanece 'revelado' por baixo). */}
+      <VencedorReveal
+        vencedor={vencedor}
+        premioNome={premio.nome}
+        visivel={fase === 'revelado' && mostrarRevelacao}
+        onFechar={() => setMostrarRevelacao(false)}
+      />
       <ConfeteOverlay trigger={confeteTrigger} />
+
+      {/* Depois de fechar o overlay, deixa um resumo discreto na própria tela
+          (útil se quiser reabrir o destaque ou só conferir sem tela cheia). */}
+      {fase === 'revelado' && !mostrarRevelacao && vencedor && (
+        <button
+          type="button"
+          onClick={() => setMostrarRevelacao(true)}
+          className="rounded-summit bg-white/10 px-6 py-3 text-sm font-semibold text-white/80 hover:bg-white/15"
+        >
+          🏆 {vencedor.nome} — ver revelação de novo
+        </button>
+      )}
 
       {erro && <p className="text-sm font-semibold text-red-300">{erro}</p>}
     </div>
