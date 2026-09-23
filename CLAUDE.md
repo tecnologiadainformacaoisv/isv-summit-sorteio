@@ -72,10 +72,14 @@ Este projeto faz parte da pasta `Desenvolvimento/`, que reúne os sistemas do
 
 - Versionamento: **Semantic Versioning** (`MAJOR.MINOR.PATCH`); `MAJOR` = 0 em pré-produção.
 - Commits no padrão **Conventional Commits** (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`).
-- Segurança de dados via **RLS do Postgres** (ver `db/02_rls.sql`) — leitura pública restrita a colunas
-  não sensíveis (`participantes_publico`), escrita só para usuários autenticados.
-- Rotas: `/` = tela do telão; `/admin/*` = gestão. **Ambas exigem login** (`RequireAuth`) — gravar um
-  sorteio é escrita no banco, e RLS só permite escrita autenticada, então o telão não pode ficar aberto.
+- **SEM LOGIN** (decisão explícita do usuário em 2026-09-23 — login "seria complicado demais" pra
+  diretoria acessar). `db/05_sem_login.sql` reabriu escrita no banco pra `anon` (antes só
+  `authenticated`). Consequência real, não cosmética: **qualquer pessoa com o link pode sortear,
+  editar/excluir participantes e prêmios, e resetar sorteios** — não só quem organiza o evento. Os
+  arquivos `RequireAuth.tsx`, `LoginPage.tsx` e `useAuth.ts` foram removidos do projeto (não é código
+  morto guardado — foram deletados; reativar login exige recriá-los, ver histórico do git antes do
+  commit que os removeu).
+- Rotas: `/` = tela do telão; `/admin/*` = gestão. Nenhuma das duas tem guarda de acesso.
 
 ---
 

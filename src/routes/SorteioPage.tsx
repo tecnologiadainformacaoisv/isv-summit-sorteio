@@ -8,7 +8,7 @@ import { usePremios } from '../hooks/usePremios'
 import { useParticipantesElegiveis } from '../hooks/useParticipantesElegiveis'
 import type { Premio } from '../types/database'
 
-/** Tela do telão, operada por um membro da equipe logado (ver RequireAuth em App.tsx). */
+/** Tela do telão — sem login, acesso livre pra qualquer pessoa com o link. */
 export function SorteioPage() {
   const { premios, carregando: carregandoPremios, recarregar: recarregarPremios } = usePremios()
   const { elegiveis, recarregar: recarregarElegiveis } = useParticipantesElegiveis()

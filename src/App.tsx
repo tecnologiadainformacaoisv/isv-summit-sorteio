@@ -1,29 +1,21 @@
 import { Route, Routes } from 'react-router-dom'
 import { SorteioPage } from './routes/SorteioPage'
 import { AdminLayout } from './routes/admin/AdminLayout'
-import { LoginPage } from './routes/admin/LoginPage'
 import { AdminHome } from './routes/admin/AdminHome'
 import { ParticipantesPage } from './routes/admin/ParticipantesPage'
 import { PremiosPage } from './routes/admin/PremiosPage'
 import { VencedoresPage } from './routes/admin/VencedoresPage'
 import { ImportacaoSymplaPage } from './routes/admin/ImportacaoSymplaPage'
-import { RequireAuth } from './components/auth/RequireAuth'
 
+// Sem login (decisão explícita — "vai ser complicado demais" pra diretoria
+// acessar). Isso significa que QUALQUER PESSOA com o link pode sortear,
+// editar prêmios/participantes e resetar sorteios, não só quem opera o
+// evento. Ver db/05_remover_auth.sql para o que isso mudou no banco.
 function App() {
   return (
     <Routes>
-      {/* Gravar um sorteio exige usuário autenticado (RLS) — quem opera o
-          telão precisa estar logado, mesmo essa não sendo uma tela "de admin". */}
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <SorteioPage />
-          </RequireAuth>
-        }
-      />
+      <Route path="/" element={<SorteioPage />} />
 
-      <Route path="/admin/login" element={<LoginPage />} />
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminHome />} />
         <Route path="participantes" element={<ParticipantesPage />} />
