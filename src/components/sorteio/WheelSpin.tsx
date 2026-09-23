@@ -29,8 +29,9 @@ const EASE_DESACELERACAO: [number, number, number, number] = [0.075, 0.82, 0.165
 // TODOS os participantes, decisão do usuário), a câmera vai dando zoom
 // progressivo conforme a roda desacelera, ancorado no topo — onde fica o
 // ponteiro e onde a fatia vencedora vai parar — pra ler o nome de perto
-// bem na hora da revelação.
-const ZOOM_MAXIMO = 2.2
+// bem na hora da revelação. Zoom bem forte de propósito (praticamente um
+// close-up na fatia vencedora no final), pra funcionar de longe num telão.
+const ZOOM_MAXIMO = 5
 
 function calcularZoom(progresso: number) {
   // Fica ~1x (sem zoom) por boa parte do giro, e só cresce de verdade perto
@@ -53,10 +54,16 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    // Resolução do canvas já leva em conta o ZOOM MÁXIMO, não só o devicePixelRatio —
+    // sem isso, ao dar zoom via CSS (transform: scale) num canvas desenhado em
+    // resolução "normal", o navegador só estica os pixels já rasterizados e
+    // tudo fica borrado. Desenhando na resolução final de antemão, mesmo o
+    // zoom máximo continua nítido.
     const dpr = window.devicePixelRatio || 1
-    canvas.width = tamanho * dpr
-    canvas.height = tamanho * dpr
-    ctx.scale(dpr, dpr)
+    const escalaRender = dpr * ZOOM_MAXIMO
+    canvas.width = tamanho * escalaRender
+    canvas.height = tamanho * escalaRender
+    ctx.scale(escalaRender, escalaRender)
 
     const raio = tamanho / 2
     const anguloFatia = (2 * Math.PI) / fatias.length
@@ -86,11 +93,11 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
         ctx.textBaseline = 'middle'
         ctx.fillStyle = '#ffffff'
         ctx.font = `700 ${fonte}px 'Segoe UI', system-ui, sans-serif`
-        const primeiroNome = pessoa.nome.split(' ')[0]
-        const maxChars = Math.max(4, Math.floor(anguloFatia * 14))
-        const texto =
-          primeiroNome.length > maxChars ? `${primeiroNome.slice(0, maxChars - 1)}…` : primeiroNome
-        ctx.fillText(texto, raio - 14, 0)
+        // Nome completo, sem cortar — igual ao Wheel of Names: numa roda
+        // com muita gente, o texto pode "vazar" visualmente pela fatia
+        // vizinha quando não cabe, em vez de truncar com reticências. Com o
+        // zoom forte no final, a fatia vencedora fica legível de qualquer forma.
+        ctx.fillText(pessoa.nome, raio - 14, 0)
         ctx.restore()
       }
     })
