@@ -4,7 +4,7 @@ import type { ParticipantePublico } from '../../types/database'
 import { tocarClique } from '../../lib/audio'
 
 interface WheelSpinProps {
-  /** Pool de nomes usado para desenhar as fatias da roda. */
+  /** Pool de nomes usado para desenhar as fatias da roda — todos participam visualmente. */
   candidatos: ParticipantePublico[]
   /** Vencedor JÁ definido e persistido no banco — a roda só anima até ele. */
   vencedor: ParticipantePublico | null
@@ -17,30 +17,32 @@ interface WheelSpinProps {
 // mesmo com dezenas de fatias.
 const CORES = ['#00ECAA', '#147556', '#0E696C', '#24A66A', '#018D50', '#015158']
 
-// Duração total do giro — 8,5s (era 7s): o trecho final de desaceleração
-// precisa "esticar" mais em segundos reais pra dar tempo de perceber a roda
-// realmente freando, não só girar rápido e parar de repente.
+// Duração total do giro — 8,5s dá tempo de suspense e de o zoom (ver abaixo)
+// ficar perceptível sem parecer abrupto.
 const DURACAO_GIRO_S = 8.5
-// easeOutCirc (mais "cauda longa" que o easeOutQuint anterior): desacelera
-// de forma ainda mais perceptível no finalzinho.
+// easeOutCirc: acelera rápido no começo e desacelera de forma bem perceptível
+// e "de cauda longa" até o fim.
 const EASE_DESACELERACAO: [number, number, number, number] = [0.075, 0.82, 0.165, 1]
 
-/**
- * Roleta de nomes (estilo Wheel of Names): fatias desenhadas em canvas,
- * giro com desaceleração real parando exatamente no vencedor já sorteado
- * (RNG resolvido em lib/sorteio.ts, antes desta animação começar — este
- * componente é puramente decorativo).
- *
- * Anima via `animate()` do framer-motion sobre um MotionValue (em vez do
- * `useAnimationControls` declarativo) porque precisamos do `onUpdate`
- * chamado a cada frame — é o que permite detectar cada fatia que a roda
- * cruza e tocar um clique por fatia, sincronizado de verdade com a
- * velocidade real do giro (rápido/picotado no início, naturalmente mais
- * espaçado conforme desacelera — não um áudio pré-gravado só esticado).
- */
+// Com pools grandes (100+), o nome na fatia vencedora fica pequeno demais
+// pra ler à distância (telão). Em vez de reduzir a lista (a roda mostra
+// TODOS os participantes, decisão do usuário), a câmera vai dando zoom
+// progressivo conforme a roda desacelera, ancorado no topo — onde fica o
+// ponteiro e onde a fatia vencedora vai parar — pra ler o nome de perto
+// bem na hora da revelação.
+const ZOOM_MAXIMO = 2.2
+
+function calcularZoom(progresso: number) {
+  // Fica ~1x (sem zoom) por boa parte do giro, e só cresce de verdade perto
+  // do fim — progresso^4 mantém a curva "achatada" no começo e acentuada no
+  // final, acompanhando a sensação de "chegando perto" enquanto desacelera.
+  return 1 + Math.pow(progresso, 4) * (ZOOM_MAXIMO - 1)
+}
+
 export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: WheelSpinProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rotate = useMotionValue(0)
+  const zoom = useMotionValue(1)
   const rodouRef = useRef(false)
   const [fatias, setFatias] = useState<ParticipantePublico[]>([])
 
@@ -58,7 +60,6 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
 
     const raio = tamanho / 2
     const anguloFatia = (2 * Math.PI) / fatias.length
-    // Fonte menor quanto mais fatias, pra caber o nome sem estourar a fatia.
     const fonte = Math.max(8, Math.min(15, 260 / fatias.length))
 
     ctx.clearRect(0, 0, tamanho, tamanho)
@@ -77,7 +78,6 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
       ctx.lineWidth = 1
       ctx.stroke()
 
-      // Só escreve o nome se a fatia for larga o suficiente pra não virar ruído visual.
       if (anguloFatia > 0.05) {
         ctx.save()
         ctx.translate(raio, raio)
@@ -107,8 +107,6 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
     const indice = lista.findIndex((p) => p.id === vencedor.id)
     const anguloFatiaGraus = 360 / lista.length
     const centroFatia = indice * anguloFatiaGraus + anguloFatiaGraus / 2
-    // Voltas moderadas (era 5) — menos graus sobrando no trecho final faz os
-    // últimos cliques ficarem bem espaçados/distintos, não um blur rápido.
     const voltas = 4
     const destino = voltas * 360 + (360 - centroFatia)
 
@@ -118,13 +116,11 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
       duration: DURACAO_GIRO_S,
       ease: EASE_DESACELERACAO,
       onUpdate: (valorAtual) => {
-        // Quantas fronteiras de fatia foram cruzadas desde o último frame —
-        // no início do giro pode ser várias de uma vez (alta velocidade).
+        zoom.set(calcularZoom(valorAtual / destino))
+
         const cruzamentosAntes = Math.floor(ultimoAngulo / anguloFatiaGraus)
         const cruzamentosAgora = Math.floor(valorAtual / anguloFatiaGraus)
         const novos = cruzamentosAgora - cruzamentosAntes
-        // Limita quantos cliques disparam no mesmo frame pra não estourar o
-        // pool de áudio quando a velocidade inicial cruza muitas fatias de uma vez.
         for (let i = 0; i < Math.min(novos, 4); i++) tocarClique()
         ultimoAngulo = valorAtual
       },
@@ -136,7 +132,14 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
   }, [vencedor])
 
   return (
-    <div className="relative mx-auto" style={{ width: tamanho, height: tamanho }}>
+    // transformOrigin "top center": o zoom cresce a partir do topo (onde
+    // fica o ponteiro/vencedor), não do centro — assim a área que importa
+    // fica "ancorada" no lugar enquanto o resto da roda cresce por baixo,
+    // em vez de tudo se afastar do ponteiro por igual.
+    <motion.div
+      className="relative mx-auto"
+      style={{ width: tamanho, height: tamanho, scale: zoom, transformOrigin: 'top center' }}
+    >
       {/* Ponteiro fixo, aponta pra dentro da roda a partir do topo */}
       <div
         className="absolute left-1/2 top-[-6px] z-10 -translate-x-1/2"
@@ -152,8 +155,7 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
         overflow: hidden aqui é essencial, não só estético: girando um
         quadrado (o <canvas>), a caixa visual dele em 45°/135° fica maior
         que o lado original (diagonal > lado) — sem cortar isso, o documento
-        ganha e perde altura de rolagem a cada 1/4 de volta, fazendo a
-        barra de scroll "pular" repetidamente durante o giro inteiro.
+        ganha e perde altura de rolagem a cada 1/4 de volta.
       */}
       <div className="h-full w-full overflow-hidden rounded-full shadow-summit">
         <motion.canvas ref={canvasRef} style={{ width: tamanho, height: tamanho, rotate }} />
@@ -162,6 +164,6 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
         className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-summit-ciano bg-white"
         aria-hidden
       />
-    </div>
+    </motion.div>
   )
 }
