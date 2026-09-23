@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect } from 'react'
 import type { ParticipantePublico } from '../../types/database'
 import { useSomVitoria } from '../../lib/audio'
-import { useEffect } from 'react'
+import { Button } from '../ui/button'
 
 interface VencedorRevealProps {
   vencedor: ParticipantePublico | null
@@ -67,13 +68,9 @@ export function VencedorReveal({ vencedor, premioNome, visivel, onFechar }: Venc
             )}
 
             {onFechar && (
-              <button
-                type="button"
-                onClick={onFechar}
-                className="mt-9 block w-full rounded-summit-sm border-2 border-white/40 py-2.5 text-sm font-bold text-white hover:bg-white/10 sm:mx-auto sm:w-auto sm:px-8"
-              >
+              <Button variant="summit-outline" onClick={onFechar} className="mt-9 w-full sm:mx-auto sm:w-auto sm:px-8">
                 Continuar
-              </button>
+              </Button>
             )}
           </motion.div>
         </motion.div>

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /**
  * Tokens de identidade visual — ISV Summit 2026
@@ -36,6 +37,66 @@
       var(--color-summit-grad-5) 100%
     );
   }
+}
+
+/**
+ * Variáveis de tema do shadcn/ui — NÃO usa a paleta cinza padrão deles.
+ * Mapeada pra identidade do Summit: primary = petroleo (ações principais),
+ * accent = ciano (destaques/foco), destructive = vermelho (ações perigosas,
+ * único tom fora da paleta do evento, mas necessário pra ficar claro que é
+ * "cuidado" — excluir prêmio, resetar sorteios).
+ *
+ * Só o tema CLARO é definido: essas variáveis alimentam os componentes do
+ * admin (fundo claro). As telas do telão continuam usando bg-summit-gradient
+ * direto, não passam pelos tokens do shadcn.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: #f8fafc;
+  --foreground: #0f2622;
+  --card: #ffffff;
+  --card-foreground: #0f2622;
+  --popover: #ffffff;
+  --popover-foreground: #0f2622;
+  --primary: #147556;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf4f0;
+  --secondary-foreground: #147556;
+  --muted: #eef2f1;
+  --muted-foreground: #64766f;
+  --accent: #00ecaa;
+  --accent-foreground: #084e43;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8e6;
+  --input: #e2e8e6;
+  --ring: #147556;
 }
 
 body {

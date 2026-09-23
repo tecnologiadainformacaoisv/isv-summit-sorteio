@@ -3,7 +3,8 @@ import { PageShell } from '../components/layout/PageShell'
 import { PremioGrid } from '../components/premios/PremioGrid'
 import { SorteioStage } from '../components/sorteio/SorteioStage'
 import { ResetarSorteiosButton } from '../components/sorteio/ResetarSorteiosButton'
-import { Button } from '../components/ui/Button'
+import { Button } from '../components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 import { usePremios } from '../hooks/usePremios'
 import { useParticipantesElegiveis } from '../hooks/useParticipantesElegiveis'
 import type { Premio } from '../types/database'
@@ -22,8 +23,8 @@ export function SorteioPage() {
     <PageShell titulo="ISV Summit 2026" subtitulo="Sorteio de prêmios">
       {premioAtual ? (
         <div>
-          <Button variante="outline" onClick={() => setPremioAtual(null)} className="mb-6">
-            ← Voltar para a lista de prêmios
+          <Button variant="summit-outline" onClick={() => setPremioAtual(null)} className="mb-6">
+            <ArrowLeft /> Voltar para a lista de prêmios
           </Button>
           {/* key={premio.id}: força remontagem ao trocar de prêmio, garantindo que o
               "já girei" interno do WheelSpin reseta para o próximo sorteio. */}

@@ -1,5 +1,8 @@
+import { Trophy } from 'lucide-react'
 import { useVencedores } from '../../hooks/useVencedores'
 import { usePremios } from '../../hooks/usePremios'
+import { Card } from '@/components/ui/Card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'
 
 export function VencedoresPage() {
   const { vencedores, carregando } = useVencedores()
@@ -11,32 +14,39 @@ export function VencedoresPage() {
       <h1 className="mb-4 text-2xl font-extrabold">Histórico de vencedores</h1>
 
       {carregando ? (
-        <p>Carregando…</p>
+        <p className="text-muted-foreground">Carregando…</p>
       ) : vencedores.length === 0 ? (
-        <p className="text-slate-500">Nenhum sorteio realizado ainda.</p>
+        <p className="text-muted-foreground">Nenhum sorteio realizado ainda.</p>
       ) : (
-        <div className="overflow-x-auto rounded-summit bg-white shadow-summit">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-slate-500">
-              <tr>
-                <th className="px-4 py-3">Prêmio</th>
-                <th className="px-4 py-3">Vencedor</th>
-                <th className="px-4 py-3">Setor</th>
-                <th className="px-4 py-3">Data/hora</th>
-              </tr>
-            </thead>
-            <tbody>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Prêmio</TableHead>
+                <TableHead>Vencedor</TableHead>
+                <TableHead>Setor</TableHead>
+                <TableHead>Data/hora</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {vencedores.map((v) => (
-                <tr key={v.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-4 py-3 font-semibold">{nomePremio(v.premio_id)}</td>
-                  <td className="px-4 py-3">{v.participante?.nome ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-500">{v.participante?.setor_texto ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-500">{new Date(v.realizado_em).toLocaleString('pt-BR')}</td>
-                </tr>
+                <TableRow key={v.id}>
+                  <TableCell className="font-semibold">{nomePremio(v.premio_id)}</TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Trophy className="size-3.5 text-amber-500" />
+                      {v.participante?.nome ?? '—'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{v.participante?.setor_texto ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(v.realizado_em).toLocaleString('pt-BR')}
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   )

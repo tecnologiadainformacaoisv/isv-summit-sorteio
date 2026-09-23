@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { Ticket, Trophy } from 'lucide-react'
+import { toast } from 'sonner'
 import type { Premio, ParticipantePublico } from '../../types/database'
 import { realizarSorteio } from '../../lib/sorteio'
 import { WheelSpin } from './WheelSpin'
 import { ConfeteOverlay } from './ConfeteOverlay'
 import { VencedorReveal } from './VencedorReveal'
-import { Button } from '../ui/Button'
+import { Button } from '../ui/button'
 
 interface SorteioStageProps {
   premio: Premio
@@ -24,18 +26,16 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
   const [vencedor, setVencedor] = useState<ParticipantePublico | null>(null)
   const [confeteTrigger, setConfeteTrigger] = useState(0)
   const [mostrarRevelacao, setMostrarRevelacao] = useState(false)
-  const [erro, setErro] = useState<string | null>(null)
   const [sorteando, setSorteando] = useState(false)
 
   async function handleSortear() {
-    setErro(null)
     setSorteando(true)
     try {
       const ganhador = await realizarSorteio(premio.id)
       setVencedor(ganhador)
       setFase('sorteando')
     } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Erro ao sortear.')
+      toast.error('Erro ao sortear', { description: e instanceof Error ? e.message : undefined })
     } finally {
       setSorteando(false)
     }
@@ -56,8 +56,13 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
       </div>
 
       {fase === 'aguardando' && (
-        <Button onClick={handleSortear} disabled={sorteando || premio.status === 'sorteado'}>
-          {premio.status === 'sorteado' ? 'Prêmio já sorteado' : sorteando ? 'Sorteando…' : 'Sortear'}
+        <Button
+          variant="summit"
+          size="lg"
+          onClick={handleSortear}
+          disabled={sorteando || premio.status === 'sorteado'}
+        >
+          <Ticket /> {premio.status === 'sorteado' ? 'Prêmio já sorteado' : sorteando ? 'Sorteando…' : 'Sortear'}
         </Button>
       )}
 
@@ -78,16 +83,10 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
       {/* Depois de fechar o overlay, deixa um resumo discreto na própria tela
           (útil se quiser reabrir o destaque ou só conferir sem tela cheia). */}
       {fase === 'revelado' && !mostrarRevelacao && vencedor && (
-        <button
-          type="button"
-          onClick={() => setMostrarRevelacao(true)}
-          className="rounded-summit bg-white/10 px-6 py-3 text-sm font-semibold text-white/80 hover:bg-white/15"
-        >
-          🏆 {vencedor.nome} — ver revelação de novo
-        </button>
+        <Button variant="summit-ghost" onClick={() => setMostrarRevelacao(true)}>
+          <Trophy className="text-amber-300" /> {vencedor.nome} — ver revelação de novo
+        </Button>
       )}
-
-      {erro && <p className="text-sm font-semibold text-red-300">{erro}</p>}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 // o navegador nunca pede essa rota ao servidor, então não há 404 a contornar —
 // e continua funcionando sem mudança quando migrarmos pra um domínio próprio.
 import { HashRouter } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import './styles/global.css'
 import App from './App.tsx'
 
@@ -17,6 +18,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HashRouter>
       <App />
+      <Toaster richColors position="top-center" />
     </HashRouter>
   </StrictMode>,
 )
