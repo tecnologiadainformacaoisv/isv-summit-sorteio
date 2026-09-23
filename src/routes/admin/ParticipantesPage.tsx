@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase'
 import type { Participante } from '../../types/database'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'
 

@@ -6,7 +6,7 @@ import { realizarSorteio } from '../../lib/sorteio'
 import { WheelSpin } from './WheelSpin'
 import { ConfeteOverlay } from './ConfeteOverlay'
 import { VencedorReveal } from './VencedorReveal'
-import { Button } from '../ui/button'
+import { Button } from '../ui/Button'
 
 interface SorteioStageProps {
   premio: Premio

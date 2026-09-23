@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
 import type { ParticipantePublico } from '../../types/database'
 import { useSomVitoria } from '../../lib/audio'
-import { Button } from '../ui/button'
+import { Button } from '../ui/Button'
 
 interface VencedorRevealProps {
   vencedor: ParticipantePublico | null
