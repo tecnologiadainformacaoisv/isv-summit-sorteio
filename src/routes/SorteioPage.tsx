@@ -23,7 +23,13 @@ export function SorteioPage() {
     <PageShell titulo="ISV Summit 2026" subtitulo="Sorteio de prêmios" larguraTotal={Boolean(premioAtual)}>
       {premioAtual ? (
         <div className="flex flex-1 flex-col">
-          <Button variant="summit-outline" onClick={() => setPremioAtual(null)} className="mb-4 self-start">
+          {/* fixed, não mais no fluxo — empilhado junto com o badge do
+              vencedor e o botão de reset, todos no canto superior esquerdo. */}
+          <Button
+            variant="summit-outline"
+            onClick={() => setPremioAtual(null)}
+            className="fixed left-4 top-24 z-20"
+          >
             <ArrowLeft /> Voltar para a lista de prêmios
           </Button>
           {/* key={premio.id}: força remontagem ao trocar de prêmio, garantindo que o

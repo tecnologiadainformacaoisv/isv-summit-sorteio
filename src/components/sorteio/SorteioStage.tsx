@@ -93,7 +93,7 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
           variant="summit-ghost"
           size="sm"
           onClick={() => setMostrarRevelacao(true)}
-          className="fixed left-4 top-20 z-20"
+          className="fixed left-4 top-36 z-20"
         >
           <Trophy className="text-amber-300" /> {vencedor.nome} — ver revelação de novo
         </Button>

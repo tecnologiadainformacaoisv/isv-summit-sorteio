@@ -52,25 +52,35 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar }: WheelSpinProps)
   const [fatias, setFatias] = useState<ParticipantePublico[]>([])
   const [tamanho, setTamanho] = useState(TAMANHO_MINIMO)
 
-  // Mede o espaço REAL disponível (o wrapper recebe flex-1 do pai, então sua
-  // altura já é "até o fim da tela"). O diâmetro da roda é o maior valor que
-  // caiba nesse espaço: altura*2 (janela até o fim) sem nunca passar da
-  // largura disponível (senão as laterais ficariam cortadas pelo container).
+  // Mede o espaço REAL disponível de duas formas independentes, não confiando
+  // só na altura que o flexbox "resolveu" pro wrapper (cadeia de flex-1
+  // aninhados pode encolher sem avisar): a ALTURA vem de onde o wrapper
+  // realmente está na tela (rect.top) até a borda de baixo da JANELA do
+  // navegador — window.innerHeight, não a altura calculada do elemento. A
+  // LARGURA vem da largura real da tela (documentElement.clientWidth), não
+  // da largura do container pai — é isso que garante ir até as laterais de
+  // verdade, mesmo que algum container no meio do caminho tenha encolhido.
   useLayoutEffect(() => {
     const wrapper = wrapperRef.current
     if (!wrapper) return
 
     const medir = () => {
-      const { width, height } = wrapper.getBoundingClientRect()
-      const porAltura = 2 * (height - FOLGA_PONTEIRO)
-      const novoTamanho = Math.max(TAMANHO_MINIMO, Math.min(width, porAltura))
+      const rect = wrapper.getBoundingClientRect()
+      const larguraTela = document.documentElement.clientWidth
+      const alturaDisponivel = window.innerHeight - rect.top
+      const porAltura = 2 * (alturaDisponivel - FOLGA_PONTEIRO)
+      const novoTamanho = Math.max(TAMANHO_MINIMO, Math.min(larguraTela, porAltura))
       setTamanho(Math.floor(novoTamanho))
     }
 
     medir()
     const observer = new ResizeObserver(medir)
     observer.observe(wrapper)
-    return () => observer.disconnect()
+    window.addEventListener('resize', medir)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', medir)
+    }
   }, [])
 
   // Desenha a roda sempre que a lista de fatias ou o tamanho medido mudar.
