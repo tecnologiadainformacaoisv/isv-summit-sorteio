@@ -18,8 +18,12 @@ interface PageShellProps {
 /** Casca de página padrão: header com o gradiente do Summit + área de conteúdo. */
 export function PageShell({ children, titulo, subtitulo, fundo = 'gradiente', larguraTotal = false }: PageShellProps) {
   return (
+    // overflow-x-hidden: rede de segurança contra scroll horizontal — mesmo
+    // que algum cálculo de tamanho (ver WheelSpin.tsx) erre por 1-2px em
+    // algum navegador/tela específica, isso vira um corte invisível em vez
+    // de uma barra de rolagem lateral aparecendo.
     <div
-      className={`flex min-h-dvh flex-col ${fundo === 'gradiente' ? 'bg-summit-gradient' : 'bg-slate-50 text-slate-900'}`}
+      className={`flex min-h-dvh flex-col overflow-x-hidden ${fundo === 'gradiente' ? 'bg-summit-gradient' : 'bg-slate-50 text-slate-900'}`}
     >
       <Header titulo={titulo} subtitulo={subtitulo} />
       <main

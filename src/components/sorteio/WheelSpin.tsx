@@ -60,13 +60,22 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar }: WheelSpinProps)
   // LARGURA vem da largura real da tela (documentElement.clientWidth), não
   // da largura do container pai — é isso que garante ir até as laterais de
   // verdade, mesmo que algum container no meio do caminho tenha encolhido.
+  //
+  // IMPORTANTE: só remede ANTES do giro começar (rodouRef ainda false). Uma
+  // vez que o giro inicia, o tamanho fica TRAVADO — antes disso, qualquer
+  // recálculo disparado no meio da animação (a barra de rolagem
+  // aparecendo/sumindo por um instante, o navegador reservando espaço pra
+  // ela, etc.) fazia a roda encolher visivelmente durante o próprio giro.
   useLayoutEffect(() => {
     const wrapper = wrapperRef.current
     if (!wrapper) return
 
     const medir = () => {
+      if (rodouRef.current) return
       const rect = wrapper.getBoundingClientRect()
-      const larguraTela = document.documentElement.clientWidth
+      // -2px de folga: encostar EXATAMENTE na largura da tela é receita pra
+      // 1px de arredondamento do navegador virar scroll horizontal.
+      const larguraTela = document.documentElement.clientWidth - 2
       const alturaDisponivel = window.innerHeight - rect.top
       const porAltura = 2 * (alturaDisponivel - FOLGA_PONTEIRO)
       const novoTamanho = Math.max(TAMANHO_MINIMO, Math.min(larguraTela, porAltura))
