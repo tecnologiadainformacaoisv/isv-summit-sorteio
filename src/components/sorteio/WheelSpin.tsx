@@ -17,13 +17,13 @@ interface WheelSpinProps {
 // mesmo com dezenas de fatias.
 const CORES = ['#00ECAA', '#147556', '#0E696C', '#24A66A', '#018D50', '#015158']
 
-// Duração total do giro — 7s dá tempo de suspense sem cansar.
-const DURACAO_GIRO_S = 7
-// easeOutQuint (aproximação padrão cubic-bezier, ver easings.net): acelera
-// rápido no começo e desacelera de forma CONTÍNUA e bem perceptível até o
-// fim — ao contrário de uma curva que termina o grosso do giro cedo e só
-// "arrasta" o resto (o que parecia rápido demais até quase parar).
-const EASE_DESACELERACAO: [number, number, number, number] = [0.22, 1, 0.36, 1]
+// Duração total do giro — 8,5s (era 7s): o trecho final de desaceleração
+// precisa "esticar" mais em segundos reais pra dar tempo de perceber a roda
+// realmente freando, não só girar rápido e parar de repente.
+const DURACAO_GIRO_S = 8.5
+// easeOutCirc (mais "cauda longa" que o easeOutQuint anterior): desacelera
+// de forma ainda mais perceptível no finalzinho.
+const EASE_DESACELERACAO: [number, number, number, number] = [0.075, 0.82, 0.165, 1]
 
 /**
  * Roleta de nomes (estilo Wheel of Names): fatias desenhadas em canvas,
@@ -107,9 +107,9 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
     const indice = lista.findIndex((p) => p.id === vencedor.id)
     const anguloFatiaGraus = 360 / lista.length
     const centroFatia = indice * anguloFatiaGraus + anguloFatiaGraus / 2
-    // Voltas moderadas — muitas voltas fazem o trecho "lento" da desaceleração
-    // ainda cobrir muitos graus, disfarçando a sensação de estar devagar.
-    const voltas = 5
+    // Voltas moderadas (era 5) — menos graus sobrando no trecho final faz os
+    // últimos cliques ficarem bem espaçados/distintos, não um blur rápido.
+    const voltas = 4
     const destino = voltas * 360 + (360 - centroFatia)
 
     let ultimoAngulo = 0
