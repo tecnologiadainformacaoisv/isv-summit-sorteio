@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import type { ParticipantePublico } from '../../types/database'
 import { tocarClique } from '../../lib/audio'
@@ -10,7 +10,6 @@ interface WheelSpinProps {
   vencedor: ParticipantePublico | null
   /** Dispara quando a roda termina de desacelerar sobre o vencedor. */
   onFinalizar?: () => void
-  tamanho?: number
 }
 
 // Paleta do Summit ciclada nas fatias — mantém a identidade visual do evento
@@ -40,20 +39,41 @@ function calcularZoom(progresso: number) {
   return 1 + Math.pow(progresso, 4) * (ZOOM_MAXIMO - 1)
 }
 
-// Altura da "janela" fixa que enquadra a roda — não cresce nunca (por isso
-// não causa scroll na página, ao contrário de escalar o elemento inteiro).
-// tamanho/2 corta exatamente no meio da roda (a "linha do equador"); +26 dá
-// espaço pro ponteiro triangular acima do círculo.
+// Espaço reservado acima do círculo pro ponteiro triangular.
 const FOLGA_PONTEIRO = 26
+const TAMANHO_MINIMO = 220
 
-export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 620 }: WheelSpinProps) {
+export function WheelSpin({ candidatos, vencedor, onFinalizar }: WheelSpinProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rotate = useMotionValue(0)
   const zoom = useMotionValue(1)
   const rodouRef = useRef(false)
   const [fatias, setFatias] = useState<ParticipantePublico[]>([])
+  const [tamanho, setTamanho] = useState(TAMANHO_MINIMO)
 
-  // Desenha a roda sempre que a lista de fatias mudar.
+  // Mede o espaço REAL disponível (o wrapper recebe flex-1 do pai, então sua
+  // altura já é "até o fim da tela"). O diâmetro da roda é o maior valor que
+  // caiba nesse espaço: altura*2 (janela até o fim) sem nunca passar da
+  // largura disponível (senão as laterais ficariam cortadas pelo container).
+  useLayoutEffect(() => {
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+
+    const medir = () => {
+      const { width, height } = wrapper.getBoundingClientRect()
+      const porAltura = 2 * (height - FOLGA_PONTEIRO)
+      const novoTamanho = Math.max(TAMANHO_MINIMO, Math.min(width, porAltura))
+      setTamanho(Math.floor(novoTamanho))
+    }
+
+    medir()
+    const observer = new ResizeObserver(medir)
+    observer.observe(wrapper)
+    return () => observer.disconnect()
+  }, [])
+
+  // Desenha a roda sempre que a lista de fatias ou o tamanho medido mudar.
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || fatias.length === 0) return
@@ -155,52 +175,60 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 620 }: 
   const alturaJanela = FOLGA_PONTEIRO + tamanho / 2
 
   return (
-    // "Janela" de tamanho FIXO com overflow hidden — o zoom acontece só no
-    // conteúdo de dentro (o <motion.div> da roda), nunca neste container.
-    // É isso que evita o zoom "vazar" pra página inteira e criar scroll: por
-    // fora, nada muda de tamanho, é uma vigia olhando pra dentro.
-    <div className="relative mx-auto overflow-hidden" style={{ width: tamanho, height: alturaJanela }}>
-      {/* Ponteiro fica FORA do conteúdo que dá zoom — não cresce junto,
-          continua com tamanho normal e fixo no topo da janela. */}
-      <div
-        className="absolute left-1/2 top-0 z-10 -translate-x-1/2"
-        style={{
-          width: 0,
-          height: 0,
-          borderLeft: '14px solid transparent',
-          borderRight: '14px solid transparent',
-          borderTop: '22px solid #ffffff',
-        }}
-      />
-
-      {/* transformOrigin "top center": cresce a partir do topo (onde fica o
-          ponteiro/vencedor) — a área que importa fica ancorada no lugar
-          enquanto o resto da roda cresce por baixo, saindo da janela visível
-          (cortado pelo overflow:hidden do container acima, não pela página). */}
-      <motion.div
-        className="absolute left-0"
-        style={{
-          top: FOLGA_PONTEIRO,
-          width: tamanho,
-          height: tamanho,
-          scale: zoom,
-          transformOrigin: 'top center',
-        }}
-      >
-        {/*
-          overflow: hidden aqui é essencial, não só estético: girando um
-          quadrado (o <canvas>), a caixa visual dele em 45°/135° fica maior
-          que o lado original (diagonal > lado) — sem cortar isso, o
-          documento ganha e perde altura de rolagem a cada 1/4 de volta.
-        */}
-        <div className="h-full w-full overflow-hidden rounded-full shadow-summit">
-          <motion.canvas ref={canvasRef} style={{ width: tamanho, height: tamanho, rotate }} />
-        </div>
+    // Wrapper de medição: recebe flex-1 w-full do pai (SorteioStage), então
+    // sua altura JÁ É "o espaço até o fim da tela" — é isso que o
+    // ResizeObserver acima lê pra decidir o tamanho da roda, ao vivo,
+    // reagindo a redimensionamento de janela também (responsivo de verdade).
+    <div ref={wrapperRef} className="flex w-full flex-1 items-start justify-center">
+      {/* "Janela" de tamanho FIXO (calculado) com overflow hidden — o zoom
+          acontece só no conteúdo de dentro, nunca neste container. É isso
+          que evita o zoom "vazar" pra página inteira e criar scroll: por
+          fora, nada muda de tamanho, é uma vigia olhando pra dentro. Como a
+          largura da janela é sempre <= largura do wrapper (ver cálculo
+          acima), as laterais da meia-lua nunca ficam cortadas. */}
+      <div className="relative overflow-hidden" style={{ width: tamanho, height: alturaJanela }}>
+        {/* Ponteiro fica FORA do conteúdo que dá zoom — não cresce junto,
+            continua com tamanho normal e fixo no topo da janela. */}
         <div
-          className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-summit-ciano bg-white"
-          aria-hidden
+          className="absolute left-1/2 top-0 z-10 -translate-x-1/2"
+          style={{
+            width: 0,
+            height: 0,
+            borderLeft: '14px solid transparent',
+            borderRight: '14px solid transparent',
+            borderTop: '22px solid #ffffff',
+          }}
         />
-      </motion.div>
+
+        {/* transformOrigin "top center": cresce a partir do topo (onde fica o
+            ponteiro/vencedor) — a área que importa fica ancorada no lugar
+            enquanto o resto da roda cresce por baixo, saindo da janela
+            visível (cortado pelo overflow:hidden do container acima). */}
+        <motion.div
+          className="absolute left-0"
+          style={{
+            top: FOLGA_PONTEIRO,
+            width: tamanho,
+            height: tamanho,
+            scale: zoom,
+            transformOrigin: 'top center',
+          }}
+        >
+          {/*
+            overflow: hidden aqui é essencial, não só estético: girando um
+            quadrado (o <canvas>), a caixa visual dele em 45°/135° fica maior
+            que o lado original (diagonal > lado) — sem cortar isso, o
+            documento ganha e perde altura de rolagem a cada 1/4 de volta.
+          */}
+          <div className="h-full w-full overflow-hidden rounded-full shadow-summit">
+            <motion.canvas ref={canvasRef} style={{ width: tamanho, height: tamanho, rotate }} />
+          </div>
+          <div
+            className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-summit-ciano bg-white"
+            aria-hidden
+          />
+        </motion.div>
+      </div>
     </div>
   )
 }

@@ -19,10 +19,10 @@ interface ResetarSorteiosButtonProps {
 }
 
 /**
- * Botão discreto (canto inferior direito) pra apagar todos os sorteios de
- * teste e reabrir os prêmios, sem precisar pedir pra rodar SQL na mão.
- * Fica pequeno/translúcido de propósito — é uma ferramenta de ensaio, não
- * uma ação do fluxo principal do evento.
+ * Botão discreto (canto superior esquerdo, abaixo do cabeçalho) pra apagar
+ * todos os sorteios de teste e reabrir os prêmios, sem precisar pedir pra
+ * rodar SQL na mão. Fica pequeno/translúcido de propósito — é uma
+ * ferramenta de ensaio, não uma ação do fluxo principal do evento.
  */
 export function ResetarSorteiosButton({ onResetado }: ResetarSorteiosButtonProps) {
   const [resetando, setResetando] = useState(false)
@@ -47,7 +47,7 @@ export function ResetarSorteiosButton({ onResetado }: ResetarSorteiosButtonProps
           type="button"
           disabled={resetando}
           title="Apagar sorteios de teste e reabrir prêmios"
-          className="fixed bottom-4 right-4 z-20 flex items-center gap-1.5 rounded-full bg-black/20 px-3 py-1.5 text-xs font-semibold text-white/50 backdrop-blur-sm transition hover:bg-black/40 hover:text-white/90 disabled:opacity-50"
+          className="fixed left-4 top-32 z-20 flex items-center gap-1.5 rounded-full bg-black/20 px-3 py-1.5 text-xs font-semibold text-white/50 backdrop-blur-sm transition hover:bg-black/40 hover:text-white/90 disabled:opacity-50"
         >
           {resetando ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
           Reset (teste)

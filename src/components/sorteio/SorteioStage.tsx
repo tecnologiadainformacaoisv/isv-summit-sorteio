@@ -49,7 +49,7 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
   }
 
   return (
-    <div className="flex flex-col items-center gap-6 text-center">
+    <div className="flex flex-1 flex-col items-center gap-4 text-center">
       <div>
         <p className="text-sm font-bold uppercase tracking-widest text-summit-ciano">Prêmio em disputa</p>
         <h2 className="text-3xl font-extrabold text-white">{premio.nome}</h2>
@@ -66,8 +66,13 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
         </Button>
       )}
 
+      {/* flex-1 + w-full: dá pro WheelSpin todo o espaço restante da tela (até
+          a borda de baixo) pra ele medir e decidir seu próprio tamanho —
+          ver WheelSpin.tsx. */}
       {fase !== 'aguardando' && (
-        <WheelSpin candidatos={candidatos} vencedor={vencedor} onFinalizar={handleRoletaFinalizada} />
+        <div className="flex w-full flex-1 flex-col items-center">
+          <WheelSpin candidatos={candidatos} vencedor={vencedor} onFinalizar={handleRoletaFinalizada} />
+        </div>
       )}
 
       {/* Overlay em destaque, sobre a roleta — some ao clicar "Continuar", mas o
@@ -80,10 +85,16 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
       />
       <ConfeteOverlay trigger={confeteTrigger} />
 
-      {/* Depois de fechar o overlay, deixa um resumo discreto na própria tela
-          (útil se quiser reabrir o destaque ou só conferir sem tela cheia). */}
+      {/* Depois de fechar o overlay, deixa um resumo discreto e fixo no canto
+          superior esquerdo (útil se quiser reabrir o destaque ou só conferir
+          sem tela cheia) — acima do botão de reset, mesmo canto. */}
       {fase === 'revelado' && !mostrarRevelacao && vencedor && (
-        <Button variant="summit-ghost" onClick={() => setMostrarRevelacao(true)}>
+        <Button
+          variant="summit-ghost"
+          size="sm"
+          onClick={() => setMostrarRevelacao(true)}
+          className="fixed left-4 top-20 z-20"
+        >
           <Trophy className="text-amber-300" /> {vencedor.nome} — ver revelação de novo
         </Button>
       )}
