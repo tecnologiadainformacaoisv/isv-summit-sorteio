@@ -57,11 +57,11 @@ Este projeto faz parte da pasta `Desenvolvimento/`, que reúne os sistemas do
 
 ## Pendências conhecidas
 
-- **Token e Event ID da Sympla ainda não foram gerados.** A importação real (`/admin/importacao`)
-  não vai funcionar até isso ser configurado via `supabase secrets set SYMPLA_API_TOKEN=... SYMPLA_EVENT_ID=...`.
-  Até lá, usar `db/03_seed_dev.sql` para popular dados de teste.
-- Nenhum arquivo de áudio de vitória foi adicionado ainda (`src/lib/audio.ts` fica mudo por padrão até
-  um arquivo ser colocado em `src/assets/sons/`).
+- ~~Token e Event ID da Sympla~~ — já configurados (secrets aplicados via CLI), importação real
+  funcionando desde então.
+- ~~Sem áudio~~ — `src/assets/sons/giro-roleta.mp3` (toca ao iniciar o giro) e
+  `aplausos-vitoria.mp3` (toca na revelação) adicionados em 2026-09-23, baixados do Mixkit
+  (licença Sound Effects Free — uso comercial livre, sem exigir atribuição). Ver `src/lib/audio.ts`.
 - O nome exato do campo customizado de "setor" no formulário de inscrição da Sympla ainda não foi
   confirmado — ajustar `SETOR_CAMPO_CUSTOMIZADO` em `supabase/functions/importar-sympla/index.ts`
   quando tivermos acesso real à API.

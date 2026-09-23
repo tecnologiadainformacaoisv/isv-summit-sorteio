@@ -1,15 +1,18 @@
 /**
- * Wrapper fino sobre use-sound para os efeitos sonoros do sorteio.
- *
- * PENDÊNCIA: nenhum arquivo de áudio foi adicionado ao projeto ainda.
- * Quando tiver o efeito sonoro definido (ex: fanfarra de vitória), coloque o
- * arquivo em `src/assets/sons/fanfarra-vitoria.mp3` e troque o `somUrl` padrão
- * abaixo — até lá, o hook fica mudo (retorna um play() no-op) para não quebrar
- * o build por referenciar um asset inexistente.
+ * Efeitos sonoros do sorteio — arquivos em src/assets/sons/, baixados do
+ * Mixkit (licença "Sound Effects Free License": uso comercial livre, sem
+ * exigir atribuição — https://mixkit.co/license/).
  */
 import useSound from 'use-sound'
+import giroRoleta from '../assets/sons/giro-roleta.mp3'
+import aplausosVitoria from '../assets/sons/aplausos-vitoria.mp3'
 
-export function useSomVitoria(somUrl?: string) {
-  const [play, controls] = useSound(somUrl ?? '', { volume: 0.8, soundEnabled: Boolean(somUrl) })
-  return [play, controls] as const
+/** Toca uma vez quando a roleta começa a girar. */
+export function useSomGiro() {
+  return useSound(giroRoleta, { volume: 0.5 })
+}
+
+/** Aplausos, tocados na revelação do vencedor. */
+export function useSomVitoria() {
+  return useSound(aplausosVitoria, { volume: 0.7 })
 }
