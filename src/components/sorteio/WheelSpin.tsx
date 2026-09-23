@@ -40,6 +40,12 @@ function calcularZoom(progresso: number) {
   return 1 + Math.pow(progresso, 4) * (ZOOM_MAXIMO - 1)
 }
 
+// Altura da "janela" fixa que enquadra a roda — não cresce nunca (por isso
+// não causa scroll na página, ao contrário de escalar o elemento inteiro).
+// tamanho/2 corta exatamente no meio da roda (a "linha do equador"); +26 dá
+// espaço pro ponteiro triangular acima do círculo.
+const FOLGA_PONTEIRO = 26
+
 export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: WheelSpinProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rotate = useMotionValue(0)
@@ -138,18 +144,18 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vencedor])
 
+  const alturaJanela = FOLGA_PONTEIRO + tamanho / 2
+
   return (
-    // transformOrigin "top center": o zoom cresce a partir do topo (onde
-    // fica o ponteiro/vencedor), não do centro — assim a área que importa
-    // fica "ancorada" no lugar enquanto o resto da roda cresce por baixo,
-    // em vez de tudo se afastar do ponteiro por igual.
-    <motion.div
-      className="relative mx-auto"
-      style={{ width: tamanho, height: tamanho, scale: zoom, transformOrigin: 'top center' }}
-    >
-      {/* Ponteiro fixo, aponta pra dentro da roda a partir do topo */}
+    // "Janela" de tamanho FIXO com overflow hidden — o zoom acontece só no
+    // conteúdo de dentro (o <motion.div> da roda), nunca neste container.
+    // É isso que evita o zoom "vazar" pra página inteira e criar scroll: por
+    // fora, nada muda de tamanho, é uma vigia olhando pra dentro.
+    <div className="relative mx-auto overflow-hidden" style={{ width: tamanho, height: alturaJanela }}>
+      {/* Ponteiro fica FORA do conteúdo que dá zoom — não cresce junto,
+          continua com tamanho normal e fixo no topo da janela. */}
       <div
-        className="absolute left-1/2 top-[-6px] z-10 -translate-x-1/2"
+        className="absolute left-1/2 top-0 z-10 -translate-x-1/2"
         style={{
           width: 0,
           height: 0,
@@ -158,19 +164,35 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
           borderTop: '22px solid #ffffff',
         }}
       />
-      {/*
-        overflow: hidden aqui é essencial, não só estético: girando um
-        quadrado (o <canvas>), a caixa visual dele em 45°/135° fica maior
-        que o lado original (diagonal > lado) — sem cortar isso, o documento
-        ganha e perde altura de rolagem a cada 1/4 de volta.
-      */}
-      <div className="h-full w-full overflow-hidden rounded-full shadow-summit">
-        <motion.canvas ref={canvasRef} style={{ width: tamanho, height: tamanho, rotate }} />
-      </div>
-      <div
-        className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-summit-ciano bg-white"
-        aria-hidden
-      />
-    </motion.div>
+
+      {/* transformOrigin "top center": cresce a partir do topo (onde fica o
+          ponteiro/vencedor) — a área que importa fica ancorada no lugar
+          enquanto o resto da roda cresce por baixo, saindo da janela visível
+          (cortado pelo overflow:hidden do container acima, não pela página). */}
+      <motion.div
+        className="absolute left-0"
+        style={{
+          top: FOLGA_PONTEIRO,
+          width: tamanho,
+          height: tamanho,
+          scale: zoom,
+          transformOrigin: 'top center',
+        }}
+      >
+        {/*
+          overflow: hidden aqui é essencial, não só estético: girando um
+          quadrado (o <canvas>), a caixa visual dele em 45°/135° fica maior
+          que o lado original (diagonal > lado) — sem cortar isso, o
+          documento ganha e perde altura de rolagem a cada 1/4 de volta.
+        */}
+        <div className="h-full w-full overflow-hidden rounded-full shadow-summit">
+          <motion.canvas ref={canvasRef} style={{ width: tamanho, height: tamanho, rotate }} />
+        </div>
+        <div
+          className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-summit-ciano bg-white"
+          aria-hidden
+        />
+      </motion.div>
+    </div>
   )
 }
