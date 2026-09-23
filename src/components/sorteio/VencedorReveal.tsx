@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
 import type { ParticipantePublico } from '../../types/database'
-import { useSomVitoria } from '../../lib/audio'
+import { tocarSomVitoria } from '../../lib/audio'
 import { Button } from '../ui/Button'
 
 interface VencedorRevealProps {
@@ -17,11 +17,9 @@ interface VencedorRevealProps {
  * um bloco discreto de texto. Nome + setor/unidade desambigua homônimos.
  */
 export function VencedorReveal({ vencedor, premioNome, visivel, onFechar }: VencedorRevealProps) {
-  const [tocarSom] = useSomVitoria()
-
   useEffect(() => {
-    if (visivel && vencedor) tocarSom()
-  }, [visivel, vencedor, tocarSom])
+    if (visivel && vencedor) tocarSomVitoria()
+  }, [visivel, vencedor])
 
   return (
     <AnimatePresence>

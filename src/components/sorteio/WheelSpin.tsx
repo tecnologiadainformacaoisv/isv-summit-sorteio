@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useAnimationControls } from 'framer-motion'
 import type { ParticipantePublico } from '../../types/database'
-import { useSomGiro } from '../../lib/audio'
+import { tocarSomGiro } from '../../lib/audio'
 
 interface WheelSpinProps {
   /** Pool de nomes usado para desenhar as fatias da roda. */
@@ -32,7 +32,6 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
   const controls = useAnimationControls()
   const rodouRef = useRef(false)
   const [fatias, setFatias] = useState<ParticipantePublico[]>([])
-  const [tocarGiro] = useSomGiro()
 
   // Desenha a roda sempre que a lista de fatias mudar.
   useEffect(() => {
@@ -102,7 +101,7 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
     const voltas = 6
     const destino = voltas * 360 + (360 - centroFatia)
 
-    tocarGiro()
+    tocarSomGiro()
     controls.set({ rotate: 0 })
     controls.start({
       rotate: destino,
