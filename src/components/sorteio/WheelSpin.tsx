@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useAnimationControls } from 'framer-motion'
 import type { ParticipantePublico } from '../../types/database'
-import { tocarSomGiro } from '../../lib/audio'
+import { pararSomGiro, tocarSomGiro } from '../../lib/audio'
 
 interface WheelSpinProps {
   /** Pool de nomes usado para desenhar as fatias da roda. */
@@ -19,7 +19,8 @@ const CORES = ['#00ECAA', '#147556', '#0E696C', '#24A66A', '#018D50', '#015158']
 
 // Única fonte da verdade pra duração do giro — usada tanto na transição do
 // framer-motion quanto no timeout que libera onFinalizar, pra nunca dessincronizar.
-const DURACAO_GIRO_MS = 4500
+// 7s (era 4,5s) — mais suspense, e casa com a duração natural do som de catraca.
+const DURACAO_GIRO_MS = 7000
 
 /**
  * Roleta de nomes (estilo Wheel of Names): fatias desenhadas em canvas,
@@ -98,10 +99,12 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
     const centroFatia = indice * anguloFatiaGraus + anguloFatiaGraus / 2
     // O ponteiro fica fixo no topo (0°). A roda precisa girar até o centro
     // da fatia vencedora parar embaixo do ponteiro, mais várias voltas completas.
-    const voltas = 6
+    // Mais voltas pro giro mais longo continuar parecendo rápido no início,
+    // não em câmera lenta.
+    const voltas = 9
     const destino = voltas * 360 + (360 - centroFatia)
 
-    tocarSomGiro()
+    tocarSomGiro(DURACAO_GIRO_MS)
     controls.set({ rotate: 0 })
     controls.start({
       rotate: destino,
@@ -110,7 +113,10 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
     // Usa um timeout (não onComplete do framer-motion) pra não depender do
     // callback disparar exatamente junto do fim visual — mas com a MESMA
     // constante da duração da transição acima, nunca hardcoded duas vezes.
-    const timeout = setTimeout(() => onFinalizar?.(), DURACAO_GIRO_MS)
+    const timeout = setTimeout(() => {
+      pararSomGiro()
+      onFinalizar?.()
+    }, DURACAO_GIRO_MS)
     return () => clearTimeout(timeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vencedor])
