@@ -46,7 +46,7 @@ function calcularZoom(progresso: number) {
 // espaço pro ponteiro triangular acima do círculo.
 const FOLGA_PONTEIRO = 26
 
-export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: WheelSpinProps) {
+export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 620 }: WheelSpinProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rotate = useMotionValue(0)
   const zoom = useMotionValue(1)
@@ -98,11 +98,19 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
         ctx.textAlign = 'right'
         ctx.textBaseline = 'middle'
         ctx.fillStyle = '#ffffff'
-        ctx.font = `700 ${fonte}px 'Segoe UI', system-ui, sans-serif`
-        // Nome completo, sem cortar — igual ao Wheel of Names: numa roda
-        // com muita gente, o texto pode "vazar" visualmente pela fatia
-        // vizinha quando não cabe, em vez de truncar com reticências. Com o
-        // zoom forte no final, a fatia vencedora fica legível de qualquer forma.
+
+        // Nome completo, mas SEM deixar o texto ultrapassar o raio da roda —
+        // isso cortava a palavra no meio (pela máscara circular do wrapper),
+        // ficava com cara de bug. Em vez de truncar com "...", encolhe a
+        // fonte só o necessário pra esse nome específico caber inteiro.
+        const larguraDisponivel = raio - 20
+        let fontePessoa = fonte
+        ctx.font = `700 ${fontePessoa}px 'Segoe UI', system-ui, sans-serif`
+        const largura = ctx.measureText(pessoa.nome).width
+        if (largura > larguraDisponivel) {
+          fontePessoa = Math.max(6, fontePessoa * (larguraDisponivel / largura))
+          ctx.font = `700 ${fontePessoa}px 'Segoe UI', system-ui, sans-serif`
+        }
         ctx.fillText(pessoa.nome, raio - 14, 0)
         ctx.restore()
       }
