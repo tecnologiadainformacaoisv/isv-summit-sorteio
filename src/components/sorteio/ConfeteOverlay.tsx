@@ -21,6 +21,15 @@ const PARTICULAS_POR_RAJADA = 35
 export function ConfeteOverlay({ trigger }: ConfeteOverlayProps) {
   const primeiraRenderizacao = useRef(true)
 
+  // Ao desmontar (ex: trocar de prêmio antes do confete anterior acabar de cair),
+  // encerra imediatamente qualquer rajada em andamento — sem isso o canvas global
+  // do canvas-confetti continua a animação por cima da tela do próximo sorteio.
+  useEffect(() => {
+    return () => {
+      confetti.reset()
+    }
+  }, [])
+
   useEffect(() => {
     if (primeiraRenderizacao.current) {
       primeiraRenderizacao.current = false

@@ -4,10 +4,12 @@ import { PremioCard } from './PremioCard'
 interface PremioGridProps {
   premios: Premio[]
   premioSelecionadoId?: string
+  /** premio_id -> nome do vencedor, pra exibir direto no card dos prêmios já sorteados. */
+  vencedorPorPremio?: Record<string, string>
   onSelecionar?: (premio: Premio) => void
 }
 
-export function PremioGrid({ premios, premioSelecionadoId, onSelecionar }: PremioGridProps) {
+export function PremioGrid({ premios, premioSelecionadoId, vencedorPorPremio, onSelecionar }: PremioGridProps) {
   if (premios.length === 0) {
     return <p className="text-white/70">Nenhum prêmio cadastrado ainda.</p>
   }
@@ -19,6 +21,7 @@ export function PremioGrid({ premios, premioSelecionadoId, onSelecionar }: Premi
           key={premio.id}
           premio={premio}
           selecionado={premio.id === premioSelecionadoId}
+          vencedorNome={vencedorPorPremio?.[premio.id]}
           onSelecionar={onSelecionar}
         />
       ))}
