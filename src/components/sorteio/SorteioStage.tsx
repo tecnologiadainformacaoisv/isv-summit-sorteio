@@ -45,19 +45,18 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
       setOverlayAberto(true)
       // Calcula o tamanho BASE da roleta (medição única no clique, não fica
       // observando resize — é isso que causava os problemas de scroll
-      // "pulando" nas tentativas antigas). Como agora é meia-lua (só 58% da
-      // altura do "lado" fica visível), o mesmo espaço vertical permite um
-      // raio bem maior do que um círculo inteiro — e raio maior = fonte
-      // maior por fatia. Divide pelo zoom máximo (2.1x) pra nunca estourar a
-      // tela no pico do zoom (largura sempre; altura só reserva a fração
-      // visível da meia-lua, 0.58).
-      const ZOOM_MAXIMO = 2.8
-      const ALTURA_VISIVEL = 0.58
-      const larguraDisponivel = (window.innerWidth * 0.9) / ZOOM_MAXIMO
-      // 0.92 (quase toda a altura livre abaixo do título) no lugar de 0.62 —
-      // no pico do zoom a meia-lua deve quase encostar no fim da tela.
+      // "pulando" nas tentativas antigas). Como é meia-lua (só 52% da altura
+      // do "lado" fica visível), o mesmo espaço vertical permite um raio bem
+      // maior do que um círculo inteiro. ZOOM_MAXIMO baixo (1.8, não mais
+      // 2.8) = reserva menos espaço pro crescimento do zoom e permite
+      // começar com um raio bem maior já de cara — fatias mais largas em
+      // pixels desde o início, não só no fim do giro.
+      const ZOOM_MAXIMO = 1.8
+      // Precisa bater com o mesmo fator usado em WheelSpin.tsx (alturaJanela).
+      const ALTURA_VISIVEL = 0.52
+      const larguraDisponivel = (window.innerWidth * 0.95) / ZOOM_MAXIMO
       const alturaDisponivel = (window.innerHeight * 0.92) / (ZOOM_MAXIMO * ALTURA_VISIVEL)
-      setTamanhoRoleta(Math.max(260, Math.min(larguraDisponivel, alturaDisponivel, 520)))
+      setTamanhoRoleta(Math.max(320, Math.min(larguraDisponivel, alturaDisponivel, 760)))
     } catch (e) {
       toast.error('Erro ao sortear', { description: e instanceof Error ? e.message : undefined })
     } finally {
@@ -101,7 +100,7 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
                 que cresce pode ficar inacessível pela rolagem na borda de
                 cima — alinhado ao topo garante que dá sempre pra rolar até
                 o fim e ver o botão que a roda empurrou pra baixo. */}
-            <div className="flex min-h-full w-full flex-col items-center gap-4 pt-2">
+            <div className="flex min-h-full w-full flex-col items-center gap-8 pt-2">
               <div>
                 <p className="text-sm font-bold uppercase tracking-widest text-summit-ciano">Prêmio em disputa</p>
                 <h2 className="text-3xl font-extrabold text-white">{premio.nome}</h2>

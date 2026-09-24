@@ -177,14 +177,14 @@ export function PremioCarousel({ premios, premioAtualId, vencedorPorPremio, onSe
 
               <p
                 className={cn(
-                  'mt-1 truncate text-center text-xs font-semibold transition-colors',
+                  'mt-1.5 truncate text-center text-base font-bold transition-colors',
                   ativo ? 'text-summit-ciano' : 'text-white/60',
                 )}
               >
                 {premio.nome}
               </p>
               {premio.status === 'sorteado' && vencedorPorPremio?.[premio.id] && (
-                <p className="truncate text-center text-[11px] font-bold text-summit-ciano">
+                <p className="truncate text-center text-sm font-bold text-summit-ciano">
                   🏆 {vencedorPorPremio[premio.id]}
                 </p>
               )}

@@ -25,7 +25,7 @@ const DURACAO_GIRO_MS = 8000
 // animar quanto pra decidir a resolução do canvas — desenhando já no
 // tamanho final ampliado, o zoom nunca fica borrado (esticar um bitmap
 // pequeno via CSS é o que causava o desfoque antes).
-const ZOOM_MAXIMO = 2.8
+const ZOOM_MAXIMO = 1.8
 
 /**
  * Roleta de nomes (estilo Wheel of Names): fatias desenhadas em canvas,
@@ -47,11 +47,17 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
   const ladoAtual = useMotionValue(tamanho)
   // Altura da "janela" visível (meia-lua) — sempre 58% do lado, derivada
   // automaticamente do zoom em tempo real via useTransform.
-  const alturaJanela = useTransform(ladoAtual, (v) => v * 0.58)
+  // Não pode ir abaixo de 0.5: nesse ponto exato fica o centro real do
+  // círculo (onde a bolinha marca o pivô) — cortar mais que isso escondia
+  // a bolinha por completo. 0.52 dá uma margem mínima pra ela aparecer.
+  const alturaJanela = useTransform(ladoAtual, (v) => v * 0.52)
   // Centro real do círculo em px (metade do lado) — vinculado direto ao
   // mesmo valor usado pro círculo, não a uma % da janela (que dependia do
   // aspect-ratio resolver a tempo durante a animação e podia dessincronizar).
   const centroPx = useTransform(ladoAtual, (v) => v / 2)
+  // Diâmetro da bolinha central acompanha o buraco do anel (raioInternoAnel
+  // = raio * 0.38 no desenho do canvas, ou seja 0.38 do lado também aqui).
+  const diametroCentro = useTransform(ladoAtual, (v) => v * 0.28)
   const [fatias, setFatias] = useState<ParticipantePublico[]>([])
 
   // Desenha a roda sempre que a lista de fatias mudar. Desenha já na
@@ -73,10 +79,15 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
     const raio = resolucao / 2
     const anguloFatia = (2 * Math.PI) / fatias.length
     const inicioTexto = raio - 14
-    const larguraDisponivel = inicioTexto - 18
+    // Buraco central bem maior (roda vira um "anel", não um círculo cheio
+    // até o meio) — o ponto mais interno de cada fatia (onde os nomes
+    // terminam) fica bem mais afastado do centro, então a fatia é mais
+    // larga ali, cabendo fonte maior sem vazar pra vizinha.
+    const raioInternoAnel = raio * 0.28
+    const larguraDisponivel = inicioTexto - raioInternoAnel
     // Fonte MÁXIMA como ponto de partida (ângulo × raio na borda externa) —
     // só o chute inicial; o loop abaixo confere caso a caso.
-    const fonteMaximaAngular = anguloFatia * inicioTexto * 0.86
+    const fonteMaximaAngular = anguloFatia * inicioTexto * 0.75
 
     ctx.clearRect(0, 0, resolucao, resolucao)
 
@@ -85,13 +96,13 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
       const fim = inicio + anguloFatia
 
       ctx.beginPath()
-      ctx.moveTo(raio, raio)
       ctx.arc(raio, raio, raio - 4, inicio, fim)
+      ctx.arc(raio, raio, raioInternoAnel, fim, inicio, true)
       ctx.closePath()
       ctx.fillStyle = CORES[i % CORES.length]
       ctx.fill()
       ctx.strokeStyle = 'rgba(255,255,255,0.25)'
-      ctx.lineWidth = 1
+      ctx.lineWidth = 2.5
       ctx.stroke()
 
       // Só escreve o nome se a fatia for larga o suficiente pra não virar ruído visual.
@@ -105,32 +116,34 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
 
         // Nome completo (não só o primeiro) — cada fatia usa a maior fonte
         // possível que ainda cabe, pra preencher o espaço em vez de deixar
-        // fatia vazia. Confere DOIS limites, não só a largura: a fatia é um
-        // leque, mais estreita perto do centro — um nome comprido termina
-        // perto do centro, onde cabe MENOS altura de fonte do que na borda
-        // externa. Sem checar isso, o nome "vaza" pra fatia vizinha (era
-        // exatamente esse bug: só a borda externa era considerada).
-        const texto = pessoa.nome
-        let tamanhoFonte = fonteMaximaAngular
-        ctx.font = `700 ${tamanhoFonte}px 'Segoe UI', system-ui, sans-serif`
-        for (let tentativas = 0; tentativas < 60; tentativas++) {
-          const largura = ctx.measureText(texto).width
-          const raioInterno = Math.max(4, inicioTexto - largura)
-          const alturaMaximaNoPontoMaisEstreito = anguloFatia * raioInterno * 0.86
-          const cabeNaLargura = largura <= larguraDisponivel
-          const cabeNaAltura = tamanhoFonte <= alturaMaximaNoPontoMaisEstreito
-          if ((cabeNaLargura && cabeNaAltura) || tamanhoFonte <= 6) break
-          tamanhoFonte -= 0.5
-          ctx.font = `700 ${tamanhoFonte}px 'Segoe UI', system-ui, sans-serif`
+        // fatia vazia. Confere DOIS limites: a fatia é um leque, mais
+        // estreita perto do centro — um nome comprido termina perto do
+        // centro, onde cabe MENOS altura de fonte do que na borda externa.
+        const FONTE_MINIMA = 6.5
+        const cabeDosDoisLados = (txt: string, fonte: number) => {
+          ctx.font = `700 ${fonte}px 'Segoe UI', system-ui, sans-serif`
+          const largura = ctx.measureText(txt).width
+          const raioInterno = Math.max(raioInternoAnel, inicioTexto - largura)
+          const alturaMaxima = anguloFatia * raioInterno * 0.75
+          return largura <= larguraDisponivel && fonte <= alturaMaxima
         }
 
-        let textoFinal = texto
-        if (ctx.measureText(textoFinal).width > larguraDisponivel) {
-          while (textoFinal.length > 2 && ctx.measureText(`${textoFinal}…`).width > larguraDisponivel) {
-            textoFinal = textoFinal.slice(0, -1)
-          }
-          textoFinal += '…'
+        let textoFinal = pessoa.nome
+        let tamanhoFonte = fonteMaximaAngular
+        while (tamanhoFonte > FONTE_MINIMA && !cabeDosDoisLados(textoFinal, tamanhoFonte)) {
+          tamanhoFonte -= 0.5
         }
+        // Se nem no tamanho mínimo coube (nome muito comprido pra fatia bem
+        // fina), corta com "…" até caber nos dois limites — antes só se
+        // cortava por largura, então nomes compridos "vazavam" pra fatia
+        // vizinha mesmo já no piso da fonte.
+        while (textoFinal.length > 2 && !cabeDosDoisLados(textoFinal, tamanhoFonte)) {
+          textoFinal = textoFinal.slice(0, -1)
+        }
+        if (textoFinal !== pessoa.nome && !textoFinal.endsWith('…')) {
+          textoFinal = `${textoFinal.slice(0, -1)}…`
+        }
+        ctx.font = `700 ${tamanhoFonte}px 'Segoe UI', system-ui, sans-serif`
         ctx.fillText(textoFinal, raio - 14, 0)
         ctx.restore()
       }
@@ -187,7 +200,9 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
 
   return (
     <motion.div className="relative mx-auto" style={{ width: ladoAtual, height: alturaJanela }}>
-      {/* Ponteiro fixo, aponta pra dentro da roda a partir do topo */}
+      {/* Ponteiro fixo, aponta pra dentro da roda a partir do topo — fica
+          FORA da caixa com overflow-hidden abaixo, senão seria cortado
+          (ele mesmo fica um pouco acima do topo, top: -6px). */}
       <div
         className="absolute left-1/2 top-[-6px] z-10 -translate-x-1/2"
         style={{
@@ -199,12 +214,12 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
         }}
       />
       {/*
-        overflow: hidden aqui essencial em dois sentidos: 1) girando um
-        quadrado (o <canvas>), a caixa visual dele em 45°/135° fica maior
-        que o lado original — sem cortar isso, o scroll "pula" a cada 1/4 de
-        volta; 2) é o que corta a metade de baixo do círculo, formando a
-        meia-lua (a "janela" externa é mais baixa que larga, o círculo
-        interno continua um quadrado perfeito, nunca vira elipse/serrilhado).
+        overflow: hidden aqui tem 3 papéis: 1) girando um quadrado (o
+        <canvas>), a caixa visual dele em 45°/135° fica maior que o lado
+        original — sem cortar isso, o scroll "pula" a cada 1/4 de volta;
+        2) corta a metade de baixo do círculo, formando a meia-lua; 3)
+        garante que a bolinha central nunca escapa da caixa reservada no
+        layout e encosta no que vem depois na página (ex: o botão voltar).
       */}
       <div className="relative h-full w-full overflow-hidden">
         <motion.div
@@ -216,12 +231,12 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
             style={{ width: '100%', height: '100%', rotate }}
           />
         </motion.div>
+        <motion.div
+          className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-summit-ciano/50 bg-summit-gradient shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)]"
+          style={{ top: centroPx, width: diametroCentro, height: diametroCentro }}
+          aria-hidden
+        />
       </div>
-      <motion.div
-        className="absolute left-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-summit-ciano bg-white"
-        style={{ top: centroPx }}
-        aria-hidden
-      />
     </motion.div>
   )
 }
