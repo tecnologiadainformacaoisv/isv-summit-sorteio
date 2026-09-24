@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { motion, useMotionValue, animate } from 'framer-motion'
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import type { ParticipantePublico } from '../../types/database'
 import { tocarClique } from '../../lib/audio'
 
@@ -21,13 +21,22 @@ const CORES = ['#00ECAA', '#147556', '#0E696C', '#24A66A', '#018D50', '#015158']
 // framer-motion quanto no timeout que libera onFinalizar, pra nunca dessincronizar.
 const DURACAO_GIRO_MS = 8000
 
+// Fator máximo de zoom (tamanho real, não transform). Usado tanto pra
+// animar quanto pra decidir a resolução do canvas — desenhando já no
+// tamanho final ampliado, o zoom nunca fica borrado (esticar um bitmap
+// pequeno via CSS é o que causava o desfoque antes).
+const ZOOM_MAXIMO = 2.8
+
 /**
  * Roleta de nomes (estilo Wheel of Names): fatias desenhadas em canvas,
  * giro com desaceleração parando exatamente no vencedor já sorteado (RNG
  * resolvido em lib/sorteio.ts, antes desta animação começar — este
- * componente é puramente decorativo, igual ao antigo SlotReel). Círculo
- * inteiro sempre, sem meia-lua — só dá um leve zoom crescendo a partir do
- * ponteiro (onde a fatia vencedora sempre para) conforme desacelera.
+ * componente é puramente decorativo, igual ao antigo SlotReel). Formato
+ * meia-lua FIXO (não anima o corte): mostrando só a metade de cima, o
+ * mesmo espaço vertical permite um raio bem maior — e raio maior = fonte
+ * maior por fatia, essencial pra dar pra ler o nome com muitos
+ * participantes. O círculo inteiro é sempre desenhado (mais fácil de
+ * girar), só a "janela" visível é que é meia-lua.
  */
 export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: WheelSpinProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -36,29 +45,40 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
   // vem depois na página (ex: o botão "voltar"), em vez de só crescer por
   // cima visualmente sem mexer no espaço reservado no layout.
   const ladoAtual = useMotionValue(tamanho)
+  // Altura da "janela" visível (meia-lua) — sempre 58% do lado, derivada
+  // automaticamente do zoom em tempo real via useTransform.
+  const alturaJanela = useTransform(ladoAtual, (v) => v * 0.58)
+  // Centro real do círculo em px (metade do lado) — vinculado direto ao
+  // mesmo valor usado pro círculo, não a uma % da janela (que dependia do
+  // aspect-ratio resolver a tempo durante a animação e podia dessincronizar).
+  const centroPx = useTransform(ladoAtual, (v) => v / 2)
   const [fatias, setFatias] = useState<ParticipantePublico[]>([])
 
-  // Desenha a roda sempre que a lista de fatias mudar.
+  // Desenha a roda sempre que a lista de fatias mudar. Desenha já na
+  // resolução do zoom MÁXIMO (não no tamanho base) — o elemento visual
+  // começa menor e cresce via CSS até esse tamanho real, nunca ultrapassando
+  // a resolução nativa do bitmap, então não borra em nenhum momento do zoom.
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || fatias.length === 0) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    const resolucao = tamanho * ZOOM_MAXIMO
     const dpr = window.devicePixelRatio || 1
-    canvas.width = tamanho * dpr
-    canvas.height = tamanho * dpr
+    canvas.width = resolucao * dpr
+    canvas.height = resolucao * dpr
     ctx.scale(dpr, dpr)
 
-    const raio = tamanho / 2
+    const raio = resolucao / 2
     const anguloFatia = (2 * Math.PI) / fatias.length
-    const larguraDisponivel = raio - 14 - 18
-    // Fonte MÁXIMA que cabe na altura da fatia (ângulo × raio) — ponto de
-    // partida pra cada nome tentar preencher o espaço ao máximo, em vez de
-    // um tamanho pequeno e conservador que sobra espaço vazio.
-    const fonteMaximaAngular = anguloFatia * (raio - 14) * 0.86
+    const inicioTexto = raio - 14
+    const larguraDisponivel = inicioTexto - 18
+    // Fonte MÁXIMA como ponto de partida (ângulo × raio na borda externa) —
+    // só o chute inicial; o loop abaixo confere caso a caso.
+    const fonteMaximaAngular = anguloFatia * inicioTexto * 0.86
 
-    ctx.clearRect(0, 0, tamanho, tamanho)
+    ctx.clearRect(0, 0, resolucao, resolucao)
 
     fatias.forEach((pessoa, i) => {
       const inicio = i * anguloFatia - Math.PI / 2
@@ -84,13 +104,22 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
         ctx.fillStyle = '#ffffff'
 
         // Nome completo (não só o primeiro) — cada fatia usa a maior fonte
-        // possível que ainda cabe na largura disponível, pra preencher o
-        // espaço em vez de deixar fatia vazia. Só corta com "…" no caso raro
-        // de nem no tamanho mínimo legível caber inteiro.
+        // possível que ainda cabe, pra preencher o espaço em vez de deixar
+        // fatia vazia. Confere DOIS limites, não só a largura: a fatia é um
+        // leque, mais estreita perto do centro — um nome comprido termina
+        // perto do centro, onde cabe MENOS altura de fonte do que na borda
+        // externa. Sem checar isso, o nome "vaza" pra fatia vizinha (era
+        // exatamente esse bug: só a borda externa era considerada).
         const texto = pessoa.nome
         let tamanhoFonte = fonteMaximaAngular
         ctx.font = `700 ${tamanhoFonte}px 'Segoe UI', system-ui, sans-serif`
-        while (ctx.measureText(texto).width > larguraDisponivel && tamanhoFonte > 6) {
+        for (let tentativas = 0; tentativas < 60; tentativas++) {
+          const largura = ctx.measureText(texto).width
+          const raioInterno = Math.max(4, inicioTexto - largura)
+          const alturaMaximaNoPontoMaisEstreito = anguloFatia * raioInterno * 0.86
+          const cabeNaLargura = largura <= larguraDisponivel
+          const cabeNaAltura = tamanhoFonte <= alturaMaximaNoPontoMaisEstreito
+          if ((cabeNaLargura && cabeNaAltura) || tamanhoFonte <= 6) break
           tamanhoFonte -= 0.5
           ctx.font = `700 ${tamanhoFonte}px 'Segoe UI', system-ui, sans-serif`
         }
@@ -144,7 +173,7 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
     // não se move (o giro nunca some do lugar), e o que vem depois na
     // página (o botão de voltar) é empurrado pra baixo conforme cresce,
     // igual um elemento normal de layout.
-    const controlsLado = animate(ladoAtual, tamanho * 2.1, {
+    const controlsLado = animate(ladoAtual, tamanho * ZOOM_MAXIMO, {
       duration: DURACAO_GIRO_MS / 1000,
       ease: [0.25, 0.1, 0.5, 1],
     })
@@ -157,7 +186,7 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
   }, [vencedor])
 
   return (
-    <motion.div className="relative mx-auto" style={{ width: ladoAtual, height: ladoAtual }}>
+    <motion.div className="relative mx-auto" style={{ width: ladoAtual, height: alturaJanela }}>
       {/* Ponteiro fixo, aponta pra dentro da roda a partir do topo */}
       <div
         className="absolute left-1/2 top-[-6px] z-10 -translate-x-1/2"
@@ -170,20 +199,27 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
         }}
       />
       {/*
-        overflow: hidden aqui é essencial, não só estético: girando um
+        overflow: hidden aqui essencial em dois sentidos: 1) girando um
         quadrado (o <canvas>), a caixa visual dele em 45°/135° fica maior
-        que o lado original (diagonal > lado) — sem cortar isso, o documento
-        ganha e perde altura de rolagem a cada 1/4 de volta, fazendo a
-        barra de scroll "pular" repetidamente durante o giro inteiro.
+        que o lado original — sem cortar isso, o scroll "pula" a cada 1/4 de
+        volta; 2) é o que corta a metade de baixo do círculo, formando a
+        meia-lua (a "janela" externa é mais baixa que larga, o círculo
+        interno continua um quadrado perfeito, nunca vira elipse/serrilhado).
       */}
-      <div className="h-full w-full overflow-hidden rounded-full shadow-summit">
-        <motion.canvas
-          ref={canvasRef}
-          style={{ width: '100%', height: '100%', rotate }}
-        />
+      <div className="relative h-full w-full overflow-hidden">
+        <motion.div
+          className="absolute inset-x-0 top-0 overflow-hidden rounded-full shadow-summit"
+          style={{ width: ladoAtual, height: ladoAtual }}
+        >
+          <motion.canvas
+            ref={canvasRef}
+            style={{ width: '100%', height: '100%', rotate }}
+          />
+        </motion.div>
       </div>
-      <div
-        className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-summit-ciano bg-white"
+      <motion.div
+        className="absolute left-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-summit-ciano bg-white"
+        style={{ top: centroPx }}
         aria-hidden
       />
     </motion.div>

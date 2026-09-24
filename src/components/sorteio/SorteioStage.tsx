@@ -43,18 +43,21 @@ export function SorteioStage({ premio, candidatos, onSorteioConcluido }: Sorteio
       setVencedor(ganhador)
       setFase('sorteando')
       setOverlayAberto(true)
-      // Calcula o tamanho BASE da roleta a partir da largura da tela (medição
-      // única no clique, não fica observando resize — é isso que causava os
-      // problemas de scroll "pulando" nas tentativas antigas). A altura não
-      // precisa de reserva especial: o zoom agora cresce em tamanho real
-      // (WheelSpin) e o overlay tem scroll de sobra (overflow-y-auto) pra
-      // acompanhar, empurrando o botão "voltar" pra baixo com ela.
-      // Divide pelo zoom máximo (2.1x) só na largura — sem isso a roda no
-      // pico do zoom fica mais larga que a tela e gera scroll horizontal
-      // (a altura pode crescer à vontade, o overlay rola verticalmente).
-      const ZOOM_MAXIMO = 2.1
+      // Calcula o tamanho BASE da roleta (medição única no clique, não fica
+      // observando resize — é isso que causava os problemas de scroll
+      // "pulando" nas tentativas antigas). Como agora é meia-lua (só 58% da
+      // altura do "lado" fica visível), o mesmo espaço vertical permite um
+      // raio bem maior do que um círculo inteiro — e raio maior = fonte
+      // maior por fatia. Divide pelo zoom máximo (2.1x) pra nunca estourar a
+      // tela no pico do zoom (largura sempre; altura só reserva a fração
+      // visível da meia-lua, 0.58).
+      const ZOOM_MAXIMO = 2.8
+      const ALTURA_VISIVEL = 0.58
       const larguraDisponivel = (window.innerWidth * 0.9) / ZOOM_MAXIMO
-      setTamanhoRoleta(Math.max(220, Math.min(larguraDisponivel, window.innerHeight * 0.4, 340)))
+      // 0.92 (quase toda a altura livre abaixo do título) no lugar de 0.62 —
+      // no pico do zoom a meia-lua deve quase encostar no fim da tela.
+      const alturaDisponivel = (window.innerHeight * 0.92) / (ZOOM_MAXIMO * ALTURA_VISIVEL)
+      setTamanhoRoleta(Math.max(260, Math.min(larguraDisponivel, alturaDisponivel, 520)))
     } catch (e) {
       toast.error('Erro ao sortear', { description: e instanceof Error ? e.message : undefined })
     } finally {
