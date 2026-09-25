@@ -105,8 +105,13 @@ export function WheelSpin({ candidatos, vencedor, onFinalizar, tamanho = 420 }: 
       ctx.lineWidth = 2.5
       ctx.stroke()
 
-      // Só escreve o nome se a fatia for larga o suficiente pra não virar ruído visual.
-      if (anguloFatia > 0.05) {
+      // Sempre escreve o nome — o ajuste de fonte por fatia (abaixo) já lida
+      // com fatias finas encolhendo até o mínimo legível ou cortando com
+      // "…"; um limite fixo aqui (ex: só escrever se a fatia for "larga o
+      // suficiente") quebrava por completo com pools grandes: com 142
+      // participantes o ângulo de cada fatia (~0.044 rad) ficava ABAIXO do
+      // limite antigo de 0.05, então NENHUM nome era desenhado.
+      {
         ctx.save()
         ctx.translate(raio, raio)
         ctx.rotate(inicio + anguloFatia / 2)
